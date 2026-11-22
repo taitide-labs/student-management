@@ -1,0 +1,16 @@
+id: no-io-in-workflow-and-domain
+language: rust
+severity: error
+message: "严禁在 workflow.rs 与 domain 层引入 sqlx、axum 或 tokio，必须保持纯函数计算并将副作用移至切片 handler.rs"
+files:
+  - "crates/contexts/**/workflow.rs"
+  - "crates/contexts/**/domain/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: "^(sqlx|axum|tokio)::"
+    - kind: scoped_type_identifier
+      regex: "^(sqlx|axum|tokio)::"

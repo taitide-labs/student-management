@@ -1,0 +1,11 @@
+#:schema https://json.schemastore.org/rumdl.json
+
+[global]
+exclude = ["CHANGELOG.md"]
+disable = ["MD013", "MD024", "MD025", "MD028", "MD033", "MD041", "MD071"]
+
+[MD004]
+style = "dash"
+
+[MD060]
+style = "compact"

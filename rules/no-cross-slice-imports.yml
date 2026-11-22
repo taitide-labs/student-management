@@ -1,0 +1,9 @@
+id: no-cross-slice-imports
+language: rust
+severity: error
+message: "严禁在同一限界上下文内跨切片导入模块，必须将共享纯逻辑下沉至上下文 domain 层，跨上下文调用必须通过 contracts 端口解耦"
+files:
+  - "crates/contexts/*/slices/src/**/*.rs"
+rule:
+  kind: scoped_identifier
+  regex: "^(crate|super)::(cmd_|qry_)"
