@@ -294,10 +294,13 @@ impl Gateway for LocalGatewayHandle {
 
     fn publish_grades(
         &mut self,
-        _session: &AccountSession,
-        _req: &PublishGradesRequest,
+        session: &AccountSession,
+        req: &PublishGradesRequest,
     ) -> Result<Vec<GradeEntrySummary>, GatewayError> {
-        Err(planned_err("grading::cmd_publish_grades"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.publish_grades(&operator, req.clone()))
+            .map_err(GatewayError::Problem)
     }
 
     fn amend_grade(

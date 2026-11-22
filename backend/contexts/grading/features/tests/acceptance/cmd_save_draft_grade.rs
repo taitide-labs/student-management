@@ -9,7 +9,6 @@ use student_management_contracts::{
 use super::support::{FakeEnrollmentPort, router, seed_operator, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn teacher_saves_draft_rejects_withdrawn_and_locks_after_publish(pool: SqlitePool) {
     seed_operator(&pool, "acc-admin", "admin", "tok-admin").await;
     seed_operator(&pool, "acc-teacher", "teacher", "tok-teacher").await;
