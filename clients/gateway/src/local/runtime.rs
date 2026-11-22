@@ -143,11 +143,17 @@ impl Gateway for LocalGatewayHandle {
 
     fn transfer_homeroom(
         &mut self,
-        _session: &AccountSession,
-        _student_no: &str,
-        _req: &TransferHomeroomRequest,
+        session: &AccountSession,
+        student_no: &str,
+        req: &TransferHomeroomRequest,
     ) -> Result<StudentSummary, GatewayError> {
-        Err(planned_err("enrollment::cmd_transfer_homeroom"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(
+                self.backend
+                    .transfer_homeroom(&operator, student_no, req.clone()),
+            )
+            .map_err(GatewayError::Problem)
     }
 
     fn suspend_student(
