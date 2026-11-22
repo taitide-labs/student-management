@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/taitide-labs/student-management/compare/v0.1.2...v0.1.3) (2026-11-22)
+
+
+### Bug Fixes
+
+* **release:** normalize Windows manifest paths in jq filters ([#11](https://github.com/taitide-labs/student-management/issues/11)) ([bdd5a3b](https://github.com/taitide-labs/student-management/commit/bdd5a3bbb50dddbf888fe94c8704c44f5ad10db3))
+
 ## [0.1.2](https://github.com/taitide-labs/student-management/compare/v0.1.1...v0.1.2) (2026-11-22)
 
 
