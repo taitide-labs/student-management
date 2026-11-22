@@ -4,7 +4,7 @@ use student_management_contracts::{
     CourseSummary, CreateCourseRequest, CreateHomeroomRequest, DisableAccountRequest,
     EnrollStudentRequest, EnrollmentStatus, HomeroomSummary, OperatorPrincipal, ProblemDetails,
     ProvisionAccountRequest, ReverseEnrollmentRequest, SignInRequest, StudentDetailPayload,
-    StudentSummary, TransferHomeroomRequest, TransitionStudentRequest,
+    StudentSummary, TeachingSummary, TransferHomeroomRequest, TransitionStudentRequest,
     UpdateHomeroomCapacityRequest,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
@@ -323,5 +323,13 @@ impl LocalBackend {
             req,
         )
         .await
+    }
+
+    pub async fn list_teachings(
+        &self,
+        operator: &OperatorPrincipal,
+    ) -> Result<Vec<TeachingSummary>, ProblemDetails> {
+        student_management_grading_features::qry_teachings::handler::execute(&self.state, operator)
+            .await
     }
 }

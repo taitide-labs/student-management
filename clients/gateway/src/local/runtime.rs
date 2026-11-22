@@ -251,9 +251,12 @@ impl Gateway for LocalGatewayHandle {
 
     fn list_teachings(
         &self,
-        _session: &AccountSession,
+        session: &AccountSession,
     ) -> Result<Vec<TeachingSummary>, GatewayError> {
-        Err(planned_err("grading::qry_teachings"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.list_teachings(&operator))
+            .map_err(GatewayError::Problem)
     }
 
     fn assign_teaching(
