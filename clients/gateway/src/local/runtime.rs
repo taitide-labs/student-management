@@ -76,7 +76,9 @@ impl Gateway for LocalGatewayHandle {
     }
 
     fn list_homerooms(&self) -> Result<Vec<HomeroomSummary>, GatewayError> {
-        Err(planned_err("enrollment::qry_homerooms"))
+        self.rt
+            .block_on(self.backend.list_homerooms())
+            .map_err(GatewayError::Problem)
     }
 
     fn create_homeroom(

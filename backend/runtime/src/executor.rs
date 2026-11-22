@@ -138,6 +138,10 @@ impl LocalBackend {
         .await
     }
 
+    pub async fn list_homerooms(&self) -> Result<Vec<HomeroomSummary>, ProblemDetails> {
+        student_management_enrollment_features::qry_homerooms::handler::execute(&self.state).await
+    }
+
     pub async fn create_homeroom(
         &self,
         operator: &OperatorPrincipal,

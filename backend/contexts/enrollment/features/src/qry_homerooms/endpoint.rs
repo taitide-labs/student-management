@@ -1,6 +1,8 @@
-use axum::{Json, Router, http::StatusCode, routing::get};
+use axum::{Json, Router, extract::State, http::StatusCode, routing::get};
 use student_management_contracts::{HomeroomSummary, ProblemDetails};
-use student_management_infra::{HttpMethod, SliceDescriptor, SliceStatus, state::AppState};
+use student_management_infra::{AppState, HttpMethod, SliceDescriptor, SliceStatus};
+
+use super::handler;
 
 #[utoipa::path(
     get,
@@ -8,11 +10,15 @@ use student_management_infra::{HttpMethod, SliceDescriptor, SliceStatus, state::
     tag = "enrollment",
     responses((status = 200, description = "行政班列表", body = Vec<HomeroomSummary>))
 )]
-pub async fn list_homerooms() -> (StatusCode, Json<ProblemDetails>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(ProblemDetails::not_implemented("enrollment::qry_homerooms")),
-    )
+pub async fn list_homerooms(
+    State(state): State<AppState>,
+) -> Result<(StatusCode, Json<Vec<HomeroomSummary>>), (StatusCode, Json<ProblemDetails>)> {
+    let homerooms = handler::execute(&state).await.map_err(|problem| {
+        let status =
+            StatusCode::from_u16(problem.status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        (status, Json(problem))
+    })?;
+    Ok((StatusCode::OK, Json(homerooms)))
 }
 
 fn route() -> Router<AppState> {
@@ -24,6 +30,6 @@ inventory::submit!(SliceDescriptor {
     slice: "qry_homerooms",
     method: HttpMethod::Get,
     path: "/api/v1/homerooms",
-    status: SliceStatus::Planned,
+    status: SliceStatus::Active,
     route,
 });
