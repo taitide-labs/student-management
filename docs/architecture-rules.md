@@ -38,7 +38,7 @@ student-management/
 ├── Cargo.toml                        # 工作区成员清单与全局 Rust/Clippy 强约束 lints
 ├── clippy.toml                       # 禁用危险方法/类型（std::sync::Mutex/var/sleep/SystemTime）
 ├── deny.toml                         # cargo-deny 许可证白名单、安全公告与多版本审计
-├── mise.toml                         # 唯一命令执行网关（fmt/check/client/e2e/lock/openapi/api/sms/app/web）
+├── mise.toml                         # 唯一命令执行网关（fmt/check/client/e2e/lock/openapi/api/cli/app/web）
 ├── sgconfig.yml                      # ast-grep 静态架构检查配置入口
 ├── context-map.md                    # 全局限界上下文地图与上游/下游集成契约总览
 ├── contracts/

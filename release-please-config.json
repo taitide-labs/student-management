@@ -19,7 +19,12 @@
         {
           "type": "toml",
           "path": "Cargo.lock",
-          "jsonpath": "$.package[?(@.name.value=='student-management-server')].version"
+          "jsonpath": "$.package[?(!@.source)].version"
+        },
+        {
+          "type": "json",
+          "path": "clients/app/nsh.json",
+          "jsonpath": "$.version"
         }
       ]
     }

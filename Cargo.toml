@@ -94,3 +94,8 @@ clone_on_ref_ptr = "deny"
 mod_module_files = "forbid"
 tests_outside_test_module = "forbid"
 inline_modules = "deny"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

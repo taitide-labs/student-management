@@ -1,0 +1,8 @@
+test_tool = "nextest"
+timeout_multiplier = 3.0
+minimum_test_timeout = 20
+cap_lints = true
+skip_calls = [
+    "::new",
+    "::default",
+]
