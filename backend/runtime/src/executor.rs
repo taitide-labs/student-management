@@ -2,9 +2,9 @@ use sqlx::Row;
 use student_management_contracts::{
     AccountSession, AccountSummary, BindPersonProfileRequest, ChangeAccountRoleRequest,
     CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus,
-    HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest, SignInRequest,
-    StudentDetailPayload, StudentSummary, TransferHomeroomRequest, TransitionStudentRequest,
-    UpdateHomeroomCapacityRequest,
+    HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest,
+    ReverseEnrollmentRequest, SignInRequest, StudentDetailPayload, StudentSummary,
+    TransferHomeroomRequest, TransitionStudentRequest, UpdateHomeroomCapacityRequest,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
 
@@ -280,6 +280,21 @@ impl LocalBackend {
         req: TransitionStudentRequest,
     ) -> Result<StudentSummary, ProblemDetails> {
         student_management_enrollment_features::cmd_graduate_student::handler::execute(
+            &self.state,
+            operator,
+            student_no,
+            req,
+        )
+        .await
+    }
+
+    pub async fn reverse_enrollment(
+        &self,
+        operator: &OperatorPrincipal,
+        student_no: &str,
+        req: ReverseEnrollmentRequest,
+    ) -> Result<StudentSummary, ProblemDetails> {
+        student_management_enrollment_features::cmd_reverse_enrollment::handler::execute(
             &self.state,
             operator,
             student_no,

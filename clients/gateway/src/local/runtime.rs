@@ -218,11 +218,17 @@ impl Gateway for LocalGatewayHandle {
 
     fn reverse_enrollment(
         &mut self,
-        _session: &AccountSession,
-        _student_no: &str,
-        _req: &ReverseEnrollmentRequest,
+        session: &AccountSession,
+        student_no: &str,
+        req: &ReverseEnrollmentRequest,
     ) -> Result<StudentSummary, GatewayError> {
-        Err(planned_err("enrollment::cmd_reverse_enrollment"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(
+                self.backend
+                    .reverse_enrollment(&operator, student_no, req.clone()),
+            )
+            .map_err(GatewayError::Problem)
     }
 
     fn list_courses(&self, _session: &AccountSession) -> Result<Vec<CourseSummary>, GatewayError> {
