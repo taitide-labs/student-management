@@ -231,8 +231,11 @@ impl Gateway for LocalGatewayHandle {
             .map_err(GatewayError::Problem)
     }
 
-    fn list_courses(&self, _session: &AccountSession) -> Result<Vec<CourseSummary>, GatewayError> {
-        Err(planned_err("grading::qry_courses"))
+    fn list_courses(&self, session: &AccountSession) -> Result<Vec<CourseSummary>, GatewayError> {
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.list_courses(&operator))
+            .map_err(GatewayError::Problem)
     }
 
     fn create_course(

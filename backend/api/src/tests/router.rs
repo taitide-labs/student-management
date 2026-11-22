@@ -31,7 +31,7 @@ async fn api_registers_all_27_slices_and_hides_planned_in_production() {
     let hidden_resp = prod
         .oneshot(
             Request::builder()
-                .uri("/api/v1/courses")
+                .uri("/api/v1/grade-amendments")
                 .body(Body::empty())
                 .expect("request"),
         )
@@ -43,7 +43,7 @@ async fn api_registers_all_27_slices_and_hides_planned_in_production() {
     let planned_resp = dev
         .oneshot(
             Request::builder()
-                .uri("/api/v1/courses")
+                .uri("/api/v1/grade-amendments")
                 .body(Body::empty())
                 .expect("request"),
         )

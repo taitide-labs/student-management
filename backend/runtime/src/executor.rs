@@ -1,8 +1,8 @@
 use sqlx::Row;
 use student_management_contracts::{
     AccountSession, AccountSummary, BindPersonProfileRequest, ChangeAccountRoleRequest,
-    CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus,
-    HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest,
+    CourseSummary, CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest,
+    EnrollmentStatus, HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest,
     ReverseEnrollmentRequest, SignInRequest, StudentDetailPayload, StudentSummary,
     TransferHomeroomRequest, TransitionStudentRequest, UpdateHomeroomCapacityRequest,
 };
@@ -301,5 +301,13 @@ impl LocalBackend {
             req,
         )
         .await
+    }
+
+    pub async fn list_courses(
+        &self,
+        operator: &OperatorPrincipal,
+    ) -> Result<Vec<CourseSummary>, ProblemDetails> {
+        student_management_grading_features::qry_courses::handler::execute(&self.state, operator)
+            .await
     }
 }
