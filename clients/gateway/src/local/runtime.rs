@@ -249,11 +249,11 @@ impl Gateway for LocalGatewayHandle {
         Err(planned_err("grading::qry_grade_amendments"))
     }
 
-    fn list_accounts(
-        &self,
-        _session: &AccountSession,
-    ) -> Result<Vec<AccountSummary>, GatewayError> {
-        Err(planned_err("identity::qry_accounts"))
+    fn list_accounts(&self, session: &AccountSession) -> Result<Vec<AccountSummary>, GatewayError> {
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.list_accounts(&operator))
+            .map_err(GatewayError::Problem)
     }
 
     fn provision_account(
