@@ -272,4 +272,19 @@ impl LocalBackend {
         )
         .await
     }
+
+    pub async fn graduate_student(
+        &self,
+        operator: &OperatorPrincipal,
+        student_no: &str,
+        req: TransitionStudentRequest,
+    ) -> Result<StudentSummary, ProblemDetails> {
+        student_management_enrollment_features::cmd_graduate_student::handler::execute(
+            &self.state,
+            operator,
+            student_no,
+            req,
+        )
+        .await
+    }
 }

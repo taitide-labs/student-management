@@ -79,7 +79,6 @@ async fn suspend_then_resume_transitions_student_between_active_and_suspended(po
 #[case("withdraw", EnrollmentStatus::Withdrawn)]
 #[case("graduate", EnrollmentStatus::Graduated)]
 #[tokio::test]
-#[ignore = "wip"]
 async fn terminal_transitions_lock_student_and_withdraw_writes_outbox(
     #[case] action: &str,
     #[case] expected_status: EnrollmentStatus,
