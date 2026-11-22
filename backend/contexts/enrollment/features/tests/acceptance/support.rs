@@ -14,6 +14,7 @@ use student_management_infra::{
 use tower::ServiceExt;
 
 pub fn router(pool: SqlitePool) -> Router {
+    student_management_enrollment_features::link();
     let state = AppState::new(
         pool,
         Arc::new(FixedClock::new("2026-11-22T12:00:00Z", "2026-11-22")),

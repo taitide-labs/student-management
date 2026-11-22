@@ -4829,7 +4829,9 @@ dependencies = [
  "serde_json",
  "sqlx",
  "student-management-contracts",
+ "student-management-enrollment-domain",
  "student-management-infra",
+ "student-management-primitives",
  "tokio",
  "tower",
  "utoipa",
@@ -4843,7 +4845,9 @@ dependencies = [
  "serde",
  "serde_json",
  "student-management-contracts",
+ "student-management-runtime",
  "thiserror 2.0.21",
+ "tokio",
 ]
 
 [[package]]
@@ -4897,6 +4901,7 @@ dependencies = [
  "sqlx",
  "student-management-contracts",
  "student-management-infra",
+ "student-management-primitives",
  "tokio",
  "tower",
  "utoipa",

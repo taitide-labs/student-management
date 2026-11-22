@@ -114,6 +114,7 @@ impl EnrollmentQueryPort for FakeEnrollmentPort {
 }
 
 pub fn router(pool: SqlitePool, enrollment_port: FakeEnrollmentPort) -> Router {
+    student_management_grading_features::link();
     let state = AppState::new(
         pool,
         Arc::new(FixedClock::new("2026-11-22T12:00:00Z", "2026-11-22")),

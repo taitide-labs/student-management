@@ -13,11 +13,13 @@ workspace = true
 default = []
 mock = []
 remote = []
-local = []
+local = ["dep:student-management-runtime", "dep:tokio"]
 
 [dependencies]
 rust_decimal.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 student-management-contracts = { path = "../../backend/contracts" }
+student-management-runtime = { path = "../../backend/runtime", optional = true }
 thiserror.workspace = true
+tokio = { workspace = true, optional = true }

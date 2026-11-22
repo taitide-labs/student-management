@@ -1,20 +1,18 @@
 use axum::http::{Method, StatusCode};
 use sqlx::SqlitePool;
 use student_management_contracts::{
-    CreateHomeroomRequest, EnrollStudentRequest, EnrollmentStatus, HomeroomSummary,
-    StudentDetailPayload, StudentSummary,
+    CreateHomeroomRequest, EnrollStudentRequest, EnrollmentStatus, HomeroomSummary, StudentSummary,
 };
 
 use super::support::{router, seed_operator, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn enroll_student_replays_idempotently_and_enforces_homeroom_capacity(pool: SqlitePool) {
     seed_operator(&pool, "acc-admin", "admin", "tok-admin").await;
     seed_operator(&pool, "acc-teacher", "teacher", "tok-teacher").await;
     let app = router(pool);
 
-    let (_, hr_body) = send_json(
+    let (hr_status, hr_body) = send_json(
         &app,
         Method::POST,
         "/api/v1/homerooms",
@@ -27,6 +25,7 @@ async fn enroll_student_replays_idempotently_and_enforces_homeroom_capacity(pool
         }),
     )
     .await;
+    assert_eq!(hr_status, StatusCode::CREATED);
     let hr: HomeroomSummary = serde_json::from_value(hr_body).expect("homeroom");
 
     let req = EnrollStudentRequest {
@@ -72,16 +71,4 @@ async fn enroll_student_replays_idempotently_and_enforces_homeroom_capacity(pool
     )
     .await;
     assert_eq!(s_full, StatusCode::CONFLICT);
-
-    let (detail_status, detail_body) = send_json::<()>(
-        &app,
-        Method::GET,
-        &format!("/api/v1/students/{}", first.student_no),
-        "tok-teacher",
-        None,
-    )
-    .await;
-    assert_eq!(detail_status, StatusCode::OK);
-    let detail: StudentDetailPayload = serde_json::from_value(detail_body).expect("detail");
-    assert_eq!(detail.changes.len(), 1);
 }

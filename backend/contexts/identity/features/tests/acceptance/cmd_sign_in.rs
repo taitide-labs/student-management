@@ -7,7 +7,6 @@ use student_management_infra::open_sqlite_pool;
 use super::support::{router, seed_account, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn sign_in_issues_session_for_valid_credentials(pool: SqlitePool) {
     seed_account(&pool, "acc-1", "admin", "admin", "admin-pass", "tok-seed").await;
     let app = router(pool);
@@ -34,7 +33,6 @@ async fn sign_in_issues_session_for_valid_credentials(pool: SqlitePool) {
 #[case("wrong-pass")]
 #[case("")]
 #[tokio::test]
-#[ignore = "wip"]
 async fn sign_in_rejects_invalid_credentials_with_problem_details(#[case] bad_password: &str) {
     let pool = open_sqlite_pool("sqlite::memory:").await.expect("sqlite");
     seed_account(&pool, "acc-1", "admin", "admin", "admin-pass", "tok-seed").await;

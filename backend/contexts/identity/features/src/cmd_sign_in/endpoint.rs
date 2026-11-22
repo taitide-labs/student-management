@@ -1,6 +1,8 @@
-use axum::{Json, Router, http::StatusCode, routing::post};
+use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use student_management_contracts::{AccountSession, ProblemDetails, SignInRequest};
-use student_management_infra::{HttpMethod, SliceDescriptor, SliceStatus, state::AppState};
+use student_management_infra::{AppState, HttpMethod, SliceDescriptor, SliceStatus};
+
+use super::handler;
 
 #[utoipa::path(
     post,
@@ -12,11 +14,18 @@ use student_management_infra::{HttpMethod, SliceDescriptor, SliceStatus, state::
         (status = 401, description = "凭证无效", body = ProblemDetails)
     )
 )]
-pub async fn sign_in(Json(_req): Json<SignInRequest>) -> (StatusCode, Json<ProblemDetails>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(ProblemDetails::not_implemented("identity::cmd_sign_in")),
-    )
+pub async fn sign_in(
+    State(state): State<AppState>,
+    Json(req): Json<SignInRequest>,
+) -> Result<(StatusCode, Json<AccountSession>), (StatusCode, Json<ProblemDetails>)> {
+    handler::execute(&state, req)
+        .await
+        .map(|session| (StatusCode::OK, Json(session)))
+        .map_err(|problem| {
+            let status =
+                StatusCode::from_u16(problem.status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+            (status, Json(problem))
+        })
 }
 
 fn route() -> Router<AppState> {
@@ -28,6 +37,6 @@ inventory::submit!(SliceDescriptor {
     slice: "cmd_sign_in",
     method: HttpMethod::Post,
     path: "/api/v1/auth/sign-in",
-    status: SliceStatus::Planned,
+    status: SliceStatus::Active,
     route,
 });

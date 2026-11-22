@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod clock;
 pub mod db;
 pub mod error;
@@ -9,6 +10,7 @@ pub mod password;
 pub mod registry;
 pub mod state;
 
+pub use auth::{authenticate_bearer, ensure_role, infra_error_to_problem, parse_role};
 pub use clock::{FixedClock, SystemClock};
 pub use db::{MIGRATOR, open_sqlite_pool};
 pub use error::InfraError;

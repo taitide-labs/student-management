@@ -14,10 +14,8 @@ default = []
 http = [
   "dep:axum",
   "dep:serde",
-  "dep:student-management-contracts",
-  "dep:student-management-infra",
   "dep:utoipa",
-  "student-management-contracts?/openapi",
+  "student-management-contracts/openapi",
   "student-management-infra/http",
 ]
 
@@ -30,13 +28,15 @@ required-features = ["http"]
 axum = { workspace = true, optional = true }
 inventory.workspace = true
 serde = { workspace = true, optional = true }
-student-management-contracts = { path = "../../../contracts", optional = true }
-student-management-infra = { path = "../../../infra", optional = true }
+sqlx.workspace = true
+student-management-contracts = { path = "../../../contracts" }
+student-management-enrollment-domain = { path = "../domain" }
+student-management-infra = { path = "../../../infra" }
+student-management-primitives = { path = "../../../primitives" }
 utoipa = { workspace = true, optional = true }
 
 [dev-dependencies]
 rstest.workspace = true
 serde_json.workspace = true
-sqlx.workspace = true
 tokio.workspace = true
 tower.workspace = true
