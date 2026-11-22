@@ -3,7 +3,6 @@ use student_management_contracts::events::IntegrationEvent;
 use student_management_infra::{dispatch_pending, enqueue_event};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn student_withdrawal_voids_only_draft_grades_and_keeps_published(pool: SqlitePool) {
     student_management_grading_features::link();
     sqlx::query(
