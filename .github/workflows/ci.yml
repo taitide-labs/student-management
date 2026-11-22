@@ -26,11 +26,15 @@ jobs:
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
       code: ${{ steps.filter.outputs.code }}
+      client: ${{ steps.filter.outputs.client == 'true' && steps.app.outputs.exists == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: ${{ github.event_name == 'pull_request' && 1 || 0 }}
           persist-credentials: false
+      - name: Check NSH app presence
+        id: app
+        run: echo "exists=$([ -f clients/app/Cargo.toml ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
@@ -50,6 +54,12 @@ jobs:
               - '!.config/rumdl.toml'
               - '!.config/autocorrectrc'
               - '!.config/lychee.toml'
+            client:
+              - 'clients/**'
+              - 'backend/contracts/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'mise.toml'
 
   docs:
     name: Docs Checks
@@ -66,7 +76,7 @@ jobs:
         with:
           install: true
       - name: Run docs checks
-        run: mise x -- hk check --all -q --step autocorrect --step rumdl --step mmdr --step lychee --step typos
+        run: mise run docs
 
   checks:
     name: Checks
@@ -75,10 +85,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      RUSTC_WRAPPER: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install Linux UI system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
@@ -88,7 +104,41 @@ jobs:
         with:
           install: true
       - name: Run code checks
-        run: mise x -- hk check --all -q --step cargo_fmt --step ast_grep --step ast_grep_rules --step cargo_clippy --step cargo_test
+        run: mise run code
+
+  client:
+    name: Client & Web Checks
+    needs: plan
+    if: ${{ needs.plan.outputs.client == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      RUSTC_WRAPPER: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Linux UI system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          prefix-key: client
+          cache-directories: |
+            clients/app/target
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          install: true
+      - name: Verify wasm32 Web compatibility
+        run: mise run web-check
+      - name: Run NSH headless UI acceptance tests
+        run: mise run client
 
   security:
     name: Security
@@ -110,11 +160,11 @@ jobs:
       - name: Scan for leaked secrets
         run: mise x -- gitleaks git --verbose --redact .
       - name: Audit dependencies with cargo-deny
-        run: mise x -- cargo deny check
+        run: mise run deny
 
   gate:
     name: Merge Gate
-    needs: [plan, docs, checks, security]
+    needs: [plan, docs, checks, client, security]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -123,12 +173,13 @@ jobs:
           PLAN_RESULT: ${{ needs.plan.result }}
           DOCS_RESULT: ${{ needs.docs.result }}
           CHECKS_RESULT: ${{ needs.checks.result }}
+          CLIENT_RESULT: ${{ needs.client.result }}
           SECURITY_RESULT: ${{ needs.security.result }}
         run: |
           if [ "$PLAN_RESULT" != "success" ]; then
             exit 1
           fi
-          for r in "$DOCS_RESULT" "$CHECKS_RESULT" "$SECURITY_RESULT"; do
+          for r in "$DOCS_RESULT" "$CHECKS_RESULT" "$CLIENT_RESULT" "$SECURITY_RESULT"; do
             if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
               exit 1
             fi

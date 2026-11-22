@@ -1,5 +1,8 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 
+[env]
+RUSTC_WRAPPER = "sccache"
+
 [tools]
 hk = "2.12"
 rumdl = "0.3.3"
@@ -9,15 +12,53 @@ gitleaks = "8"
 zizmor = "1"
 "github:huacnlee/autocorrect" = "2.16.3"
 "github:1jehuang/mermaid-rs-renderer" = "0.3.1"
+"github:longbridge/nsh" = "0.6.1"
 cargo-deny = "0.20.2"
 ast-grep = "0.51.3"
 sccache = "0.19.0"
 "github:nextest-rs/nextest" = "cargo-nextest-0.9.152"
 
-[tasks.check]
-description = "Run all documentation, formatting, ast-grep, clippy, test, and dependency audit checks"
-run = ["hk check --all --silent -n", "cargo deny check"]
-
 [tasks.fmt]
 description = "Auto-fix documentation formatting, typography, and code formatting"
-run = "hk fix --all --silent -n"
+run = "hk fix --all -q -n"
+
+[tasks.docs]
+description = "Run documentation formatting, Mermaid, link, and typo checks"
+run = "hk check --all -q -n --step autocorrect --step rumdl --step mmdr --step lychee --step typos"
+
+[tasks.code]
+description = "Run Rust formatting, ast-grep boundaries, clippy, and workspace tests"
+run = "hk check --all -q -n --step cargo_fmt --step ast_grep --step ast_grep_rules --step cargo_clippy --step cargo_test"
+
+[tasks.deny]
+description = "Audit Cargo dependencies with cargo-deny"
+run = "cargo deny check"
+
+[tasks.client]
+description = "Run headless NSH client UI acceptance tests"
+run = "nsh test clients/app"
+
+[tasks.web-check]
+description = "Verify wasm32 Web build compatibility for the NSH app"
+run = "cargo check --manifest-path clients/app/Cargo.toml --target wasm32-unknown-unknown --locked"
+
+[tasks.mutants]
+description = "Run mutation testing on primitives and domain crates"
+run = '''
+pkgs=$(cargo metadata --no-deps --format-version 1 | python3 -c "
+import sys, json
+for p in json.load(sys.stdin)['packages']:
+    m = p['manifest_path'].replace('\\\\', '/')
+    if m.endswith('/backend/primitives/Cargo.toml') or m.endswith('/domain/Cargo.toml'):
+        print('-p', p['name'])
+")
+if [ "$(uname -s)-$(uname -m)" = "Darwin-arm64" ]; then
+  exec mise x "cargo:cargo-mutants@27.1.0" -- cargo mutants $pkgs -- --locked
+else
+  exec mise x "github:sourcefrog/cargo-mutants@27.1.0" -- cargo mutants $pkgs -- --locked
+fi
+'''
+
+[tasks.check]
+description = "Run fast workspace checks (docs, fmt, ast-grep, clippy, Rust tests, and cargo-deny)"
+run = ["hk check --all -q -n", "cargo deny check"]
