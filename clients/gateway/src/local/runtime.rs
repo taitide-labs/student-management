@@ -269,11 +269,17 @@ impl Gateway for LocalGatewayHandle {
 
     fn bind_person_profile(
         &mut self,
-        _session: &AccountSession,
-        _account_id: &str,
-        _req: &BindPersonProfileRequest,
+        session: &AccountSession,
+        account_id: &str,
+        req: &BindPersonProfileRequest,
     ) -> Result<AccountSummary, GatewayError> {
-        Err(planned_err("identity::cmd_bind_person_profile"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(
+                self.backend
+                    .bind_person_profile(&operator, account_id, req.clone()),
+            )
+            .map_err(GatewayError::Problem)
     }
 
     fn change_account_role(

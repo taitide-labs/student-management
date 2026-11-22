@@ -5,7 +5,6 @@ use student_management_contracts::{AccountSummary, BindPersonProfileRequest};
 use super::support::{router, seed_account, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn bind_person_profile_updates_student_binding_and_rejects_stale_version(pool: SqlitePool) {
     seed_account(&pool, "acc-admin", "admin", "admin", "pw", "tok-admin").await;
     seed_account(&pool, "acc-stu", "stu01", "student", "pw", "tok-stu").await;
