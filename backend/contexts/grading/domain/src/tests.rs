@@ -1,1 +1,2 @@
-mod grading_specs;
+mod course;
+mod grade;

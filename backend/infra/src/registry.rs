@@ -32,3 +32,13 @@ inventory::collect!(SliceDescriptor);
 pub fn registered_slices() -> Vec<&'static SliceDescriptor> {
     inventory::iter::<SliceDescriptor>().collect()
 }
+
+pub fn build_context_router(context: &str, state: AppState) -> Router {
+    let mut router = Router::new();
+    for descriptor in inventory::iter::<SliceDescriptor> {
+        if descriptor.context == context {
+            router = router.merge((descriptor.route)());
+        }
+    }
+    router.with_state(state)
+}

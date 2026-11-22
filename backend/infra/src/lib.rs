@@ -5,6 +5,7 @@ pub mod idempotency;
 pub mod ids;
 pub mod outbox;
 pub mod password;
+#[cfg(feature = "http")]
 pub mod registry;
 pub mod state;
 
@@ -15,7 +16,10 @@ pub use idempotency::{IdempotencyOutcome, check_idempotency, hash_payload, save_
 pub use ids::{SequentialIdGenerator, UuidGenerator};
 pub use outbox::{OutboxSubscriber, OutboxSubscription, dispatch_pending, enqueue_event};
 pub use password::{hash_password, verify_password};
-pub use registry::{HttpMethod, SliceDescriptor, SliceStatus, registered_slices};
+#[cfg(feature = "http")]
+pub use registry::{
+    HttpMethod, SliceDescriptor, SliceStatus, build_context_router, registered_slices,
+};
 pub use state::AppState;
 
 #[cfg(test)]

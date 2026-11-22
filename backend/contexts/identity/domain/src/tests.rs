@@ -1,1 +1,1 @@
-mod account_specs;
+mod account;

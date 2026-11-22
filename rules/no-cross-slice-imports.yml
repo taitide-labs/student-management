@@ -6,4 +6,4 @@ files:
   - "backend/contexts/*/features/src/**/*.rs"
 rule:
   kind: scoped_identifier
-  regex: "^(crate|super)::(cmd_|qry_)"
+  regex: "^(crate|super)::(cmd_|qry_|evt_)"

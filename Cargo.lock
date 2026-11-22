@@ -4793,9 +4793,19 @@ dependencies = [
 name = "student-management-e2e"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "nsh-engine",
  "nsh-testing",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "student-management-api",
  "student-management-app",
+ "student-management-contracts",
+ "student-management-infra",
+ "student-management-runtime",
+ "tokio",
+ "tower",
 ]
 
 [[package]]
@@ -4814,11 +4824,14 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "inventory",
+ "rstest",
  "serde",
+ "serde_json",
  "sqlx",
  "student-management-contracts",
  "student-management-infra",
  "tokio",
+ "tower",
  "utoipa",
 ]
 
@@ -4850,11 +4863,15 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "inventory",
+ "rstest",
+ "rust_decimal",
  "serde",
+ "serde_json",
  "sqlx",
  "student-management-contracts",
  "student-management-infra",
  "tokio",
+ "tower",
  "utoipa",
 ]
 
@@ -4874,10 +4891,14 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "inventory",
+ "rstest",
+ "serde",
+ "serde_json",
  "sqlx",
  "student-management-contracts",
  "student-management-infra",
  "tokio",
+ "tower",
  "utoipa",
 ]
 
@@ -4920,7 +4941,6 @@ dependencies = [
  "student-management-grading-features",
  "student-management-identity-features",
  "student-management-infra",
- "tokio",
 ]
 
 [[package]]

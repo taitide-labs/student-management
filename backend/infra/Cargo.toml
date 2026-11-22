@@ -9,9 +9,13 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+default = []
+http = ["dep:axum"]
+
 [dependencies]
 argon2.workspace = true
-axum.workspace = true
+axum = { workspace = true, optional = true }
 inventory.workspace = true
 jiff.workspace = true
 parking_lot.workspace = true

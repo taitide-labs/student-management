@@ -14,6 +14,16 @@ path = "tests/walking_skeleton/main.rs"
 workspace = true
 
 [dev-dependencies]
+axum.workspace = true
 nsh-engine.workspace = true
 nsh-testing.workspace = true
+rust_decimal.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+student-management-api = { path = "../backend/api" }
 student-management-app = { path = "../clients/app" }
+student-management-contracts = { path = "../backend/contracts" }
+student-management-infra = { path = "../backend/infra" }
+student-management-runtime = { path = "../backend/runtime" }
+tokio.workspace = true
+tower.workspace = true

@@ -16,6 +16,3 @@ student-management-enrollment-features = { path = "../contexts/enrollment/featur
 student-management-grading-features = { path = "../contexts/grading/features" }
 student-management-identity-features = { path = "../contexts/identity/features" }
 student-management-infra = { path = "../infra" }
-
-[dev-dependencies]
-tokio.workspace = true

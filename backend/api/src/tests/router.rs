@@ -2,23 +2,18 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
+use student_management_infra::registered_slices;
 use student_management_runtime::build_app_state;
 use tower::ServiceExt;
 
-use crate::{build_router, build_router_with_planned, export_openapi_pretty};
-
-#[test]
-fn openapi_schema_matches_frozen_contracts_file() {
-    let generated = export_openapi_pretty().expect("serialize openapi");
-    let committed = include_str!("../../../../contracts/openapi.json");
-    assert_eq!(generated.trim(), committed.trim());
-}
+use crate::{build_router, build_router_with_planned};
 
 #[tokio::test]
-async fn health_works_and_planned_slices_stay_hidden_in_production_router() {
+async fn api_registers_all_27_slices_and_hides_planned_in_production() {
     let state = build_app_state("sqlite::memory:")
         .await
         .expect("build runtime state");
+    assert_eq!(registered_slices().len(), 27);
 
     let prod = build_router(state.clone());
     let health_resp = prod
