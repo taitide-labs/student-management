@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/taitide-labs/student-management/compare/v0.1.0...v0.1.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* **release:** fix windows sccache override, wasm llvm-ar, and release matrix ([#6](https://github.com/taitide-labs/student-management/issues/6)) ([1de8aef](https://github.com/taitide-labs/student-management/commit/1de8aef40fa6f232c621d3f4e462c8b369a979f5))
+
 ## 0.1.0 (2026-11-22)
 
 
