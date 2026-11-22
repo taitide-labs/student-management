@@ -5,7 +5,7 @@ RUSTC_WRAPPER = "{% if get_env(name='CI', default='') == '' %}sccache{% endif %}
 
 [tools]
 hk = "2.12"
-rumdl = "0.3.3"
+rumdl = "0.3.4"
 lychee = "0.24.2"
 typos = "1"
 gitleaks = "8"
