@@ -1,3 +1,3 @@
 mod client;
 
-pub use client::RemoteGatewayConfig;
+pub use client::{RemoteGateway, RemoteGatewayConfig};

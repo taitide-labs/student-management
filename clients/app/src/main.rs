@@ -8,7 +8,27 @@ use nsh_platform_macos as platform;
 use nsh_platform_windows as platform;
 
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+fn parse_server_arg() -> Option<String> {
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if let Some(value) = arg.strip_prefix("--server=") {
+            return Some(value.to_owned());
+        }
+        if arg == "--server" {
+            return args.next();
+        }
+    }
+    None
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 fn main() -> impl std::process::Termination {
+    if let Some(server) = parse_server_arg()
+        && !server.trim().is_empty()
+    {
+        student_management_app::install_remote(&server);
+    }
+
     platform::run_app(
         platform::AppSource::Rust(platform::Root::of::<student_management_app::App>()),
         platform::AppOptions {
