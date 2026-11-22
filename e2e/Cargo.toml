@@ -23,6 +23,7 @@ serde_json.workspace = true
 student-management-api = { path = "../backend/api" }
 student-management-app = { path = "../clients/app" }
 student-management-contracts = { path = "../backend/contracts" }
+student-management-gateway = { path = "../clients/gateway", features = ["remote"] }
 student-management-infra = { path = "../backend/infra" }
 student-management-runtime = { path = "../backend/runtime" }
 tokio.workspace = true

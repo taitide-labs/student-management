@@ -8,13 +8,18 @@ use serde::Serialize;
 use serde_json::Value;
 use student_management_api::build_router;
 use student_management_contracts::{
-    AssignTeachingRequest, CourseSummary, CreateCourseRequest, CreateHomeroomRequest,
-    EnrollStudentRequest, GradeEntrySummary, GradeStatus, HomeroomSummary, ProvisionAccountRequest,
-    Role, SaveDraftGradeRequest, SignInRequest, StudentSummary, TeachingSummary,
-    TransitionStudentRequest,
+    AmendGradeRequest, AssignTeachingRequest, CourseSummary, CreateCourseRequest,
+    CreateHomeroomRequest, EnrollStudentRequest, GradeEntrySummary, GradeStatus, HomeroomSummary,
+    ProvisionAccountRequest, PublishGradesRequest, Role, SaveDraftGradeRequest, SignInRequest,
+    StudentSummary, TeachingSummary, TransitionStudentRequest,
+};
+use student_management_gateway::{
+    contract::Gateway,
+    remote::{RemoteGateway, RemoteGatewayConfig},
 };
 use student_management_infra::dispatch_pending;
-use student_management_runtime::build_app_state;
+use student_management_runtime::{LocalBackend, build_app_state};
+use tokio::net::TcpListener;
 use tower::ServiceExt;
 
 async fn call_api<T: Serialize>(
@@ -136,11 +141,14 @@ async fn seed_e2e_teaching_and_student(
 }
 
 #[tokio::test]
-#[ignore = "wip"]
 async fn cross_context_enroll_grade_and_withdraw_voids_only_drafts_e2e() {
     let state = build_app_state("sqlite::memory:")
         .await
         .expect("build runtime");
+    LocalBackend::new(state.clone())
+        .ensure_bootstrap_admin("admin", "系统管理员", "admin")
+        .await
+        .expect("bootstrap admin");
     let app = build_router(state.clone());
 
     let (_, admin_sess) = call_api(
@@ -203,4 +211,147 @@ async fn cross_context_enroll_grade_and_withdraw_voids_only_drafts_e2e() {
     .await;
     let grades: Vec<GradeEntrySummary> = serde_json::from_value(grades_v).expect("grades");
     assert_eq!(grades.first().map(|g| g.status), Some(GradeStatus::Voided));
+}
+
+fn setup_remote_teaching(
+    gw: &mut RemoteGateway,
+    session: &student_management_contracts::AccountSession,
+) -> (StudentSummary, TeachingSummary) {
+    let hr = gw
+        .create_homeroom(
+            session,
+            &CreateHomeroomRequest {
+                name: "高一 HTTP 班".to_owned(),
+                grade_year: 2026,
+                capacity: Some(30),
+                idempotency_key: "http-hr-1".to_owned(),
+            },
+        )
+        .expect("create homeroom");
+    let stu = gw
+        .enroll_student(
+            session,
+            &EnrollStudentRequest {
+                full_name: "远程联调生".to_owned(),
+                homeroom_id: hr.id.clone(),
+                idempotency_key: "http-stu-1".to_owned(),
+            },
+        )
+        .expect("enroll");
+    let teacher = gw
+        .provision_account(
+            session,
+            &ProvisionAccountRequest {
+                username: "http_teacher".to_owned(),
+                display_name: "赵老师".to_owned(),
+                role: Role::Teacher,
+                bound_student_no: None,
+                idempotency_key: "http-t-1".to_owned(),
+            },
+        )
+        .expect("provision teacher");
+    let course = gw
+        .create_course(
+            session,
+            &CreateCourseRequest {
+                code: "CS201".to_owned(),
+                name: "数据结构".to_owned(),
+                max_score: Decimal::from(100),
+                pass_score: Decimal::from(60),
+                idempotency_key: "http-crs-1".to_owned(),
+            },
+        )
+        .expect("create course");
+    let teaching = gw
+        .assign_teaching(
+            session,
+            &AssignTeachingRequest {
+                course_id: course.id,
+                homeroom_id: hr.id,
+                term: "2026-秋".to_owned(),
+                teacher_account_id: teacher.account_id,
+                idempotency_key: "http-tch-1".to_owned(),
+            },
+        )
+        .expect("assign teaching");
+    (stu, teaching)
+}
+
+fn run_remote_journey(base_url: String) {
+    let mut gw = RemoteGateway::new(&RemoteGatewayConfig { base_url });
+    let session = gw
+        .sign_in(&SignInRequest {
+            username: "admin".to_owned(),
+            password: "admin".to_owned(),
+        })
+        .expect("sign in");
+    let (stu, teaching) = setup_remote_teaching(&mut gw, &session);
+    let draft = gw
+        .save_draft_grade(
+            &session,
+            &SaveDraftGradeRequest {
+                teaching_id: teaching.id.clone(),
+                student_no: stu.student_no,
+                score: Decimal::from(86),
+                idempotency_key: "http-grd-1".to_owned(),
+            },
+        )
+        .expect("save draft");
+    let published = gw
+        .publish_grades(
+            &session,
+            &PublishGradesRequest {
+                teaching_id: teaching.id,
+                idempotency_key: "http-pub-1".to_owned(),
+            },
+        )
+        .expect("publish");
+    assert_eq!(
+        published.first().map(|g| g.status),
+        Some(GradeStatus::Published)
+    );
+    let amended = gw
+        .amend_grade(
+            &session,
+            &draft.id,
+            &AmendGradeRequest {
+                new_score: Decimal::from(92),
+                reason: "试卷核分修正".to_owned(),
+                version: 2,
+                idempotency_key: "http-amd-1".to_owned(),
+            },
+        )
+        .expect("amend");
+    assert_eq!(amended.score, Decimal::from(92));
+    let audits = gw
+        .list_grade_amendments(&session, Some(&draft.id))
+        .expect("amendments");
+    assert_eq!(audits.len(), 1);
+}
+
+#[tokio::test]
+async fn remote_gateway_executes_full_journey_over_http_api_e2e() {
+    let state = build_app_state("sqlite::memory:")
+        .await
+        .expect("build runtime");
+    LocalBackend::new(state.clone())
+        .ensure_bootstrap_admin("admin", "系统管理员", "admin")
+        .await
+        .expect("bootstrap admin");
+    let app = build_router(state);
+
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind ephemeral port");
+    let addr = listener.local_addr().expect("local addr");
+    let server = tokio::spawn(async move {
+        let _res = axum::serve(listener, app).await;
+    });
+
+    let base_url = format!("http://{addr}");
+    tokio::task::spawn_blocking(move || run_remote_journey(base_url))
+        .await
+        .expect("blocking remote gateway test");
+
+    server.abort();
 }

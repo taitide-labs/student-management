@@ -4849,6 +4849,7 @@ dependencies = [
  "student-management-api",
  "student-management-app",
  "student-management-contracts",
+ "student-management-gateway",
  "student-management-infra",
  "student-management-runtime",
  "tokio",

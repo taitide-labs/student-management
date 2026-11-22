@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use student_management_api::{build_router, export_openapi_pretty};
-use student_management_runtime::build_app_state;
+use student_management_runtime::{LocalBackend, build_app_state};
 use tokio::net::TcpListener;
 
 #[tokio::main]
@@ -19,6 +19,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let state = build_app_state("sqlite:student-management.db").await?;
+    LocalBackend::new(state.clone())
+        .ensure_bootstrap_admin("admin", "系统管理员", "admin")
+        .await?;
     let router = build_router(state);
     let addr: SocketAddr = "127.0.0.1:8080".parse()?;
     let listener = TcpListener::bind(addr).await?;
