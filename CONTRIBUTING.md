@@ -21,16 +21,16 @@ hk install --mise
 
 ## 2. 常用检查命令
 
-- 执行全量只读静态检查、测试与依赖安全审计：
-
-  ```sh
-  mise run check
-  ```
-
 - 自动修复排版、Markdown 格式与代码格式：
 
   ```sh
   mise run fmt
+  ```
+
+- 执行全量只读静态检查、测试与依赖安全审计：
+
+  ```sh
+  mise run check
   ```
 
 ## 3. 提交与版本规范
@@ -50,3 +50,7 @@ hk install --mise
 1. 从 `main` 分支创建特性或修复分支。
 2. 提交前确认本地 `mise run check` 全部通过。
 3. 创建 Pull Request，确保标题符合上述提交规范，等待 `Merge Gate` 通过后使用 `Squash and merge` 合并。
+
+## 5. 开发规则
+
+详见 [development_rules.md](docs/development_rules.md)。
