@@ -32,6 +32,7 @@ use crate::{
     },
 };
 
+/// 学生管理系统主应用根组件。
 #[component]
 pub fn App() -> impl IntoElement {
     init::configure_gateway();

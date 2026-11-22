@@ -1,7 +1,7 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 
 [env]
-RUSTC_WRAPPER = "sccache"
+RUSTC_WRAPPER = "{% if get_env(name='CI', default='') == '' %}sccache{% endif %}"
 
 [tools]
 hk = "2.12"

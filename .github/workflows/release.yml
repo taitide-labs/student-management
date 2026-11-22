@@ -41,9 +41,6 @@ jobs:
           - target: aarch64-apple-darwin
             runner: macos-latest
             ext: tar.gz
-          - target: x86_64-apple-darwin
-            runner: macos-15-intel
-            ext: tar.gz
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
             ext: tar.gz
@@ -74,14 +71,18 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           key: bins-${{ matrix.target }}
+          cache-targets: false
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          install: true
+          install: false
+      - name: Install cargo-nextest
+        shell: bash
+        run: mise install "github:nextest-rs/nextest"
       - name: Run cross-platform tests
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-        run: cargo nextest run --workspace --locked --target "$TARGET"
+        run: mise x -- cargo nextest run --workspace --locked --target "$TARGET"
       - name: Build and package CLI and API binaries
         shell: bash
         env:
@@ -118,12 +119,6 @@ jobs:
             rust_target: aarch64-apple-darwin
             nsh_target: macos
             nsh_args: "--arch arm64"
-            ext: tar.gz
-          - name: macos-x86_64
-            runner: macos-15-intel
-            rust_target: x86_64-apple-darwin
-            nsh_target: macos
-            nsh_args: "--arch x86_64"
             ext: tar.gz
           - name: linux-x86_64
             runner: ubuntu-latest
@@ -168,7 +163,7 @@ jobs:
         if: ${{ startsWith(matrix.runner, 'ubuntu-') }}
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev clang llvm
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
@@ -176,11 +171,13 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           prefix-key: app-${{ matrix.name }}
-          cache-directories: |
-            clients/app/target
+          cache-targets: false
       - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          install: true
+          install: false
+      - name: Install nsh
+        shell: bash
+        run: mise install "github:longbridge/nsh"
       - name: Package client artifact
         shell: bash
         env:
