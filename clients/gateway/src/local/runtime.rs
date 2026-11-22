@@ -299,10 +299,16 @@ impl Gateway for LocalGatewayHandle {
 
     fn disable_account(
         &mut self,
-        _session: &AccountSession,
-        _account_id: &str,
-        _req: &DisableAccountRequest,
+        session: &AccountSession,
+        account_id: &str,
+        req: &DisableAccountRequest,
     ) -> Result<AccountSummary, GatewayError> {
-        Err(planned_err("identity::cmd_disable_account"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(
+                self.backend
+                    .disable_account(&operator, account_id, req.clone()),
+            )
+            .map_err(GatewayError::Problem)
     }
 }

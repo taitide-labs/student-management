@@ -7,7 +7,6 @@ use student_management_contracts::{
 use super::support::{router, seed_account, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn disable_account_blocks_self_disable_and_revokes_target_sign_in(pool: SqlitePool) {
     seed_account(&pool, "acc-admin", "admin", "admin", "pw", "tok-admin").await;
     seed_account(&pool, "acc-teacher", "lin", "teacher", "pw", "tok-teacher").await;
