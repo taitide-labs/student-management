@@ -113,19 +113,21 @@ fn create_modal(
             let name = modal.create_name.get_untracked();
             let year = modal.create_year.get_untracked();
             let cap = modal.create_cap.get_untracked();
-            match handler::create_homeroom(&active, &name, &year, &cap) {
-                Ok(created) => {
-                    modal.create_open.set(false);
-                    push_toast(
-                        format!("已创建行政班：{}", created.name),
-                        ToastTone::Success,
-                    );
+            spawn(async move {
+                match handler::create_homeroom(&active, &name, &year, &cap).await {
+                    Ok(created) => {
+                        modal.create_open.set(false);
+                        push_toast(
+                            format!("已创建行政班：{}", created.name),
+                            ToastTone::Success,
+                        );
+                    }
+                    Err(err) => {
+                        modal.create_error.set(Some(err.clone()));
+                        push_toast(err, ToastTone::Error);
+                    }
                 }
-                Err(err) => {
-                    modal.create_error.set(Some(err.clone()));
-                    push_toast(err, ToastTone::Error);
-                }
-            }
+            });
         };
         view()
             .gap_3()
@@ -164,19 +166,21 @@ fn capacity_modal(
             let id = modal.cap_room_id.get_untracked();
             let cap = modal.cap_value.get_untracked();
             let ver = modal.cap_version.get_untracked();
-            match handler::update_capacity(&active, &id, &cap, ver) {
-                Ok(updated) => {
-                    modal.cap_open.set(false);
-                    push_toast(
-                        format!("已更新 {} 额定容量", updated.name),
-                        ToastTone::Success,
-                    );
+            spawn(async move {
+                match handler::update_capacity(&active, &id, &cap, ver).await {
+                    Ok(updated) => {
+                        modal.cap_open.set(false);
+                        push_toast(
+                            format!("已更新 {} 额定容量", updated.name),
+                            ToastTone::Success,
+                        );
+                    }
+                    Err(err) => {
+                        modal.cap_error.set(Some(err.clone()));
+                        push_toast(err, ToastTone::Error);
+                    }
                 }
-                Err(err) => {
-                    modal.cap_error.set(Some(err.clone()));
-                    push_toast(err, ToastTone::Error);
-                }
-            }
+            });
         };
         view()
             .gap_3()

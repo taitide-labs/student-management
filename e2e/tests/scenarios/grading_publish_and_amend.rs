@@ -1,6 +1,9 @@
-use nsh_engine::{EngineConfig, Points, Root, Size};
-use nsh_testing::Headless;
+use std::sync::Arc;
+
+use nsh_engine::{EngineConfig, EngineContext, Points, Root, Size};
+use nsh_testing::{Headless, UreqNetwork};
 use rust_decimal::Decimal;
+use student_management_app::RemoteEndpoint;
 use student_management_contracts::{
     AssignTeachingRequest, CreateCourseRequest, CreateHomeroomRequest, EnrollStudentRequest,
     GradeStatus, ProvisionAccountRequest, Role,
@@ -78,14 +81,17 @@ async fn seed_grading_prerequisites(srv: &server::LiveApiServer) -> String {
 }
 
 fn run_grading_ui_journey(base_url: &str, student_no: &str) -> Result<(), String> {
-    student_management_app::install_remote(base_url);
     let mut app = Headless::start(EngineConfig {
         viewport: Size::new(Points(1200.0), Points(800.0)),
+        network: Some(Arc::new(UreqNetwork::new())),
+        context: EngineContext::default().with(RemoteEndpoint(base_url.to_owned())),
         ..EngineConfig::new(Root::of::<student_management_app::App>())
     })
     .map_err(|err| err.to_string())?;
 
     app.wait_for("学生管理系统")?;
+    app.type_text("text:请输入登录账号", "admin")?;
+    app.type_text("text:输入登录密码", "admin")?;
     app.press("role:button[登录]")?;
     app.wait_for("role:button[成绩]")?;
     app.press("role:button[成绩]")?;
@@ -93,7 +99,6 @@ fn run_grading_ui_journey(base_url: &str, student_no: &str) -> Result<(), String
 
     app.press("role:button[录入成绩…]")?;
     app.wait_for("保存成绩草稿")?;
-    app.clear("text:20261001")?;
     app.type_text("text:请输入学生学号", student_no)?;
     app.type_text("text:请输入分值", "91.5")?;
     app.press("role:button[保存草稿]")?;

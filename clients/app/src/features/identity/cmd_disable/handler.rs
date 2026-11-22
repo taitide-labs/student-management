@@ -3,10 +3,10 @@ use student_management_gateway::contract::{AccountSession, AccountSummary};
 
 use crate::gateway;
 
-use super::super::store::{load_accounts, next_key};
+use super::super::store::{next_key, refresh_accounts};
 use super::command;
 
-pub fn execute(
+pub async fn execute(
     session: &AccountSession,
     account_id: &str,
     reason: &str,
@@ -15,8 +15,9 @@ pub fn execute(
     let req =
         command::build_request(reason, version, next_key("acc-dis")).map_err(SharedString::from)?;
     let updated = gateway::client()
-        .with_mut(|gw| gw.disable_account(session, account_id, &req))
+        .disable_account(session, account_id, &req)
+        .await
         .map_err(|err| SharedString::from(err.to_string()))?;
-    load_accounts(session);
+    refresh_accounts(session).await;
     Ok(updated)
 }

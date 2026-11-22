@@ -3,10 +3,10 @@ use student_management_gateway::contract::{AccountSession, GradeEntrySummary};
 
 use crate::gateway;
 
-use super::super::store::{load_grading, next_key};
+use super::super::store::{next_key, refresh_grading};
 use super::command;
 
-pub fn save_draft(
+pub async fn save_draft(
     session: &AccountSession,
     teaching_id: &str,
     student_no: &str,
@@ -15,21 +15,23 @@ pub fn save_draft(
     let req = command::build_save_draft(teaching_id, student_no, score_raw, next_key("grd-save"))
         .map_err(SharedString::from)?;
     let saved = gateway::client()
-        .with_mut(|gw| gw.save_draft_grade(session, &req))
+        .save_draft_grade(session, &req)
+        .await
         .map_err(|err| SharedString::from(err.to_string()))?;
-    load_grading(session);
+    refresh_grading(session).await;
     Ok(saved)
 }
 
-pub fn publish_teaching(
+pub async fn publish_teaching(
     session: &AccountSession,
     teaching_id: &str,
 ) -> Result<usize, SharedString> {
     let req =
         command::build_publish(teaching_id, next_key("grd-pub")).map_err(SharedString::from)?;
     let published = gateway::client()
-        .with_mut(|gw| gw.publish_grades(session, &req))
+        .publish_grades(session, &req)
+        .await
         .map_err(|err| SharedString::from(err.to_string()))?;
-    load_grading(session);
+    refresh_grading(session).await;
     Ok(published.len())
 }

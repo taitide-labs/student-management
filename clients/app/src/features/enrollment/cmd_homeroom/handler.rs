@@ -3,10 +3,10 @@ use student_management_gateway::contract::{AccountSession, HomeroomSummary};
 
 use crate::gateway;
 
-use super::super::store::{load_roster, next_idempotency_key};
+use super::super::store::{next_idempotency_key, refresh_roster};
 use super::command;
 
-pub fn create_homeroom(
+pub async fn create_homeroom(
     session: &AccountSession,
     name: &str,
     grade_year_raw: &str,
@@ -20,13 +20,14 @@ pub fn create_homeroom(
     )
     .map_err(SharedString::from)?;
     let created = gateway::client()
-        .with_mut(|gw| gw.create_homeroom(session, &req))
+        .create_homeroom(session, &req)
+        .await
         .map_err(|err| SharedString::from(err.to_string()))?;
-    load_roster(session);
+    refresh_roster(session).await;
     Ok(created)
 }
 
-pub fn update_capacity(
+pub async fn update_capacity(
     session: &AccountSession,
     homeroom_id: &str,
     capacity_raw: &str,
@@ -35,8 +36,9 @@ pub fn update_capacity(
     let req = command::build_update_capacity(capacity_raw, version, next_idempotency_key("hr-cap"))
         .map_err(SharedString::from)?;
     let updated = gateway::client()
-        .with_mut(|gw| gw.update_homeroom_capacity(session, homeroom_id, &req))
+        .update_homeroom_capacity(session, homeroom_id, &req)
+        .await
         .map_err(|err| SharedString::from(err.to_string()))?;
-    load_roster(session);
+    refresh_roster(session).await;
     Ok(updated)
 }

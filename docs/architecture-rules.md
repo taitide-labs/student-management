@@ -1,6 +1,6 @@
 # 架构边界、规则与完整文件树规范
 
-本文档定义学生管理系统（Modular Monolith + Vertical Slice Architecture + CQRS + DMMF）的完整物理文件树、各层级与目录的唯一职责、严格禁止事项，以及当前发现的并发冲突热点与去摩擦演进建议。
+本文档定义学生管理系统（Modular Monolith + Vertical Slice Architecture + CQRS + DMMF）的物理文件树、各层级唯一职责与边界不变量。
 
 ---
 
@@ -38,7 +38,7 @@ student-management/
 ├── Cargo.toml                        # 工作区成员清单与全局 Rust/Clippy 强约束 lints
 ├── clippy.toml                       # 禁用危险方法/类型（std::sync::Mutex/var/sleep/SystemTime）
 ├── deny.toml                         # cargo-deny 许可证白名单、安全公告与多版本审计
-├── mise.toml                         # 唯一命令执行网关（fmt/check/lock/openapi/api/sms/app/web）
+├── mise.toml                         # 唯一命令执行网关（fmt/check/client/e2e/lock/openapi/api/sms/app/web）
 ├── sgconfig.yml                      # ast-grep 静态架构检查配置入口
 ├── context-map.md                    # 全局限界上下文地图与上游/下游集成契约总览
 ├── contracts/
@@ -254,33 +254,33 @@ backend/contexts/
 
 ```text
 clients/
-├── gateway/                          # [Crate] 客户端统一抽象网关（三种特性：mock / local / remote）
-│   ├── Cargo.toml                    # ureq 仅在 not(wasm32) 目标下作为 remote 可选依赖引入
+├── gateway/                          # [Crate] 客户端统一异步网关（mock / local / remote / nsh 四种特性）
+│   ├── Cargo.toml                    # ureq 仅限 remote（非 wasm32），nsh-core 仅限 nsh 特性
 │   └── src/
 │       ├── lib.rs
-│       ├── contract.rs / contract/{error,gateway}.rs  # Gateway trait 与 GatewayError
+│       ├── contract.rs / contract/{error,gateway}.rs  # 统一异步 Gateway 特征、GatewayClient 与 GatewayError
 │       ├── mock.rs / mock/{store,seed,account,homeroom,grading}.rs
 │       ├── local.rs / local/runtime.rs                # LocalGatewayHandle（仅 local 特性可用）
-│       ├── remote.rs / remote/client.rs               # RemoteGateway（ureq HTTP 客户端）
+│       ├── remote.rs / remote/{client,transport}.rs   # GenericRemoteGateway<T>（RemoteGateway + NshRemoteGateway）
 │       └── tests.rs / tests/{local_gateway,mock_gateway,mock_contracts}.rs
 ├── cli/                              # [Crate] 命令行客户端（--local 嵌入式 / --server 远端）
-│   ├── Cargo.toml                    # features = ["local", "remote"]
+│   ├── Cargo.toml                    # features = ["local", "remote"] + tokio 单线程运行时
 │   └── src/
 │       ├── main.rs / cli.rs / runner.rs               # 全局开关、--db/--server/--token 路由
 │       └── commands.rs / commands/{shared,auth,account,homeroom,student,grading}.rs
 │   └── tests/cli_acceptance/
 │       ├── main.rs
 │       └── local_workflows.rs        # sms --local --db 子进程真实 SQLite 与退出码验收
-└── app/                              # [Crate] NSH 跨端界面客户端（Desktop / Web / TUI）
-    ├── Cargo.toml                    # 启用 mock + remote 特性（wasm32 下自动屏蔽 ureq）
+└── app/                              # [Crate] NSH 跨端界面客户端（Desktop / Web / Mobile / TUI）
+    ├── Cargo.toml                    # 启用 nsh + mock 特性（全端统一走 nsh_core::fetch，无 ureq 依赖）
     ├── DESIGN.md / theme.json / tsconfig.json
     └── src/
-        ├── lib.rs / main.rs          # --server CLI 参数或 SMS_SERVER 挂载远端网关
-        ├── gateway.rs                # ACTIVE_GATEWAY + 跨线程共享 REMOTE_BASE_URL
+        ├── lib.rs / main.rs          # 导出 App 与 RemoteEndpoint 注入类型
+        ├── gateway.rs                # 基于 nsh_core::prelude::global 的每实例 GatewaySlot
         ├── app/
-        │   ├── init.rs               # install_remote / configure_gateway / configure_window
+        │   ├── init.rs               # EngineContext / SMS_SERVER / --server 网关解析与窗口配置
         │   ├── nav.rs                # 强类型路由与导航栈
-        │   └── shell.rs              # 响应式多端导航外壳
+        │   └── shell.rs              # 响应式多端导航外壳（在已登录 Owner 作用域触发拉取）
         ├── ui/                       # 纯设计系统控件（唯一允许接触 nsh_base/原始样式/定时器）
         │   ├── token.rs / platform.rs / motion.rs / navigation.rs
         │   ├── badge.rs / button.rs / dialog.rs / input.rs / select.rs / surface.rs / table.rs / tabs.rs / toast.rs / typography.rs
@@ -318,15 +318,16 @@ e2e/                                  # [Crate] 跨端端到端测试（真实 P
 
 ---
 
-## 3. 本项目演进沉淀的架构决策与剩余摩擦点
+## 3. 关键架构不变量与并发零冲突基线
 
-1. **已消除的冲突点：`runtime` 回归纯组合根（彻底移除 `executor.rs`）**
-   - **已落地收敛**：此前 `backend/runtime/src/executor.rs` 为 `LocalBackend` 维护了 27 个切片的透传转发方法，导致 `api`（直调 `handler::execute`）与 `local`（经 `executor.rs` 转调 `handler::execute`）出现双轨维护与并行写冲突。现已删除 `executor.rs`，使 `runtime` 仅保留 [bootstrap.rs](file:///Users/sony/RustroverProjects/taitide-labs/student-management/backend/runtime/src/bootstrap.rs) 与上下文 Crate 汇总导出，由 `endpoint.rs`（HTTP）和 `clients/gateway/src/local/`（本地直调）平级直调同一份 `slice::handler::execute`。
-   - **零冲突前提**：新切片在阶段 3 必须连同 `handler::execute` 空签名存根、`endpoint.rs`（`Planned`）以及阶段 2–3 的 `clients/gateway` 转发一起冻结，阶段 4 并行切片 AI **严禁**再触碰 `runtime` 与 `clients/gateway`。
+1. **`runtime` 作为纯组合根**
+   - `backend/runtime` 仅保留 [bootstrap.rs](../backend/runtime/src/bootstrap.rs) 与上下文模块聚合导出；`endpoint.rs`（HTTP）与 `clients/gateway/src/local/`（本地直调）平级调用同一份 `slice::handler::execute`，严禁增加逐切片透传包装层。
+   - 新增垂直切片时，在阶段 3 必须同步冻结 `handler::execute` 空签名、`endpoint.rs`（`Planned`）以及 `clients/gateway` 转发签名；阶段 4 并行实现期间严禁修改 `runtime` 或 `gateway`。
 
-2. **客户端网络模式配置化收敛**
-   - `clients/app` 已支持通过线程安全的 `REMOTE_BASE_URL` 将配置从组合根同步至 `nsh-engine` 渲染线程；在后续新项目中，阶段 2 起即应当在组合根定义不可变启动配置（`GatewayMode::MockSeeded | Remote { base_url }`），避免 `thread_local!` 状态撕裂。
+2. **客户端异步 `Gateway` 与实例级配置注入**
+   - `Gateway` 仅暴露纯异步业务方法；`MockGateway` 的桩开关与角色辅助方法严格收敛在 `clients/gateway/src/mock/`，禁止向公共契约或生产页面泄露演示数据与伪操作。
+   - `clients/app` 通过 `nsh_core::prelude::global` 保存每实例 `GatewayClient`，远端地址优先经 `EngineConfig::context`（`RemoteEndpoint`）注入，实现多引擎实例、WebAssembly 与跨端 E2E 并发安全。
 
-3. **其他已暴露的技术细节约束**
-   - `clients/cli` 幂等键若直接拼接用户输入文本（如班级名 `"高一 3 班"`），会触发 `IdempotencyKey` 禁空白符校验，CLI 端必须统一经过空白转义与截断构造。
-   - 测试与本地嵌入式运行时严禁在事务中调跨上下文 `Port`，必须遵循“前置读/外调 Port → 开启事务 → 领域计算 → 落库 + Outbox/幂等 → 提交 → 本地即时分发”。
+3. **SQLite 事务与幂等键约束**
+   - `clients/cli` 构造幂等键必须统一经过空白转义与长度截断，以满足 `IdempotencyKey` 原语校验。
+   - 跨上下文 `Port` 必须在事务外调用，严格遵循“前置外部 Port 校验 → 开启事务 → 领域计算 → 落库与 Outbox/幂等写入 → 提交 → 本地事件分发”，防止 `:memory:` 单连接死锁。

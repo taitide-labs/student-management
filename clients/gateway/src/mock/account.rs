@@ -3,9 +3,9 @@ use crate::contract::{
     ChangeAccountRoleRequest, DisableAccountRequest, GatewayError, ProvisionAccountRequest, Role,
 };
 
-use super::store::{MockGateway, problem};
+use super::store::{MockState, problem};
 
-impl MockGateway {
+impl MockState {
     pub(super) fn list_accounts_impl(
         &self,
         session: &AccountSession,

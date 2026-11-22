@@ -3,10 +3,10 @@ use student_management_gateway::contract::{AccountSession, AccountSummary, Role}
 
 use crate::gateway;
 
-use super::super::store::{load_accounts, next_key};
+use super::super::store::{next_key, refresh_accounts};
 use super::command;
 
-pub fn execute(
+pub async fn execute(
     session: &AccountSession,
     username: &str,
     display_name: &str,
@@ -22,8 +22,9 @@ pub fn execute(
     )
     .map_err(SharedString::from)?;
     let created = gateway::client()
-        .with_mut(|gw| gw.provision_account(session, &req))
+        .provision_account(session, &req)
+        .await
         .map_err(|err| SharedString::from(err.to_string()))?;
-    load_accounts(session);
+    refresh_accounts(session).await;
     Ok(created)
 }

@@ -23,7 +23,6 @@ pub struct TransitionModalState {
     reverse_status: Signal<Option<SharedString>>,
     reason: Signal<String>,
     form_error: Signal<Option<SharedString>>,
-    refresh_tick: Signal<u64>,
 }
 
 impl TransitionModalState {
@@ -37,12 +36,7 @@ impl TransitionModalState {
             reverse_status: signal(Some(SharedString::from("Active"))),
             reason: signal(String::new()),
             form_error: signal(None),
-            refresh_tick: signal(0_u64),
         }
-    }
-
-    pub fn track_refresh(self) {
-        let _ = self.refresh_tick.get();
     }
 
     pub fn open_for(self, kind: ActionKind, version: u64) {
@@ -97,10 +91,6 @@ pub fn transition_modal(
     };
     modal_sheet(modal.open, title, move || {
         let kind = modal.kind.get().unwrap_or(ActionKind::Suspend);
-        let room_options = store::homerooms()
-            .into_iter()
-            .map(|r| SelectOption::new(r.id, r.name))
-            .collect::<Vec<_>>();
         let reverse_options = vec![
             SelectOption::new("Active", "在籍"),
             SelectOption::new("Suspended", "休学"),
@@ -113,7 +103,12 @@ pub fn transition_modal(
             fields = fields.child(labeled_field(
                 "目标行政班",
                 app_select(
-                    room_options,
+                    || {
+                        store::homerooms()
+                            .into_iter()
+                            .map(|r| SelectOption::new(r.id, r.name))
+                            .collect()
+                    },
                     modal.transfer_room,
                     "选择目标行政班",
                     "目标行政班",
@@ -125,7 +120,7 @@ pub fn transition_modal(
             fields = fields.child(labeled_field(
                 "恢复状态",
                 app_select(
-                    reverse_options,
+                    move || reverse_options.clone(),
                     modal.reverse_status,
                     "选择恢复状态",
                     "恢复状态",
@@ -177,23 +172,28 @@ fn submit_modal(
         _ => EnrollmentStatus::Active,
     };
     let reason = modal.reason.get_untracked();
-    match handler::execute(
-        &active,
-        student_no,
-        modal.version.get_untracked(),
-        kind,
-        room_val.as_deref(),
-        rev_val,
-        &reason,
-    ) {
-        Ok(_) => {
-            modal.open.set(false);
-            modal.refresh_tick.update(|n| *n += 1);
-            push_toast("学籍异动已登记", ToastTone::Success);
+    let target_no = student_no.to_owned();
+    let version = modal.version.get_untracked();
+    spawn(async move {
+        match handler::execute(
+            &active,
+            &target_no,
+            version,
+            kind,
+            room_val.as_deref(),
+            rev_val,
+            &reason,
+        )
+        .await
+        {
+            Ok(_) => {
+                modal.open.set(false);
+                push_toast("学籍异动已登记", ToastTone::Success);
+            }
+            Err(err) => {
+                modal.form_error.set(Some(err.clone()));
+                push_toast(err, ToastTone::Error);
+            }
         }
-        Err(err) => {
-            modal.form_error.set(Some(err.clone()));
-            push_toast(err, ToastTone::Error);
-        }
-    }
+    });
 }

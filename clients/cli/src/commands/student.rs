@@ -67,8 +67,8 @@ fn transition_subcommand(name: &'static str, about: &'static str) -> Command {
         .arg(Arg::new("version").long("version").required(true))
 }
 
-pub fn execute<G: Gateway>(
-    gw: &mut G,
+pub async fn execute<G: Gateway>(
+    gw: &G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,
@@ -80,14 +80,14 @@ pub fn execute<G: Gateway>(
             let filter = args
                 .get_one::<String>("status")
                 .and_then(|s| parse_status(s));
-            match gw.list_students(session, q, filter) {
+            match gw.list_students(session, q, filter).await {
                 Ok(rows) => emit_students(&rows, json),
                 Err(err) => emit_error(&err),
             }
         }
         Some(("show", args)) => {
             let no = str_arg(args, "student_no");
-            match gw.student_detail(session, no) {
+            match gw.student_detail(session, no).await {
                 Ok(detail) => emit_json_or_text(&detail, json, &detail.student.full_name),
                 Err(err) => emit_error(&err),
             }
@@ -100,7 +100,7 @@ pub fn execute<G: Gateway>(
                 homeroom_id: homeroom.to_owned(),
                 idempotency_key: make_idempotency_key("cli-enroll", &format!("{name}-{homeroom}")),
             };
-            match gw.enroll_student(session, &req) {
+            match gw.enroll_student(session, &req).await {
                 Ok(created) => emit_json_or_text(
                     &created,
                     json,
@@ -121,7 +121,7 @@ pub fn execute<G: Gateway>(
                 version,
                 idempotency_key: format!("cli-transfer-{no}-{version}"),
             };
-            match gw.transfer_homeroom(session, no, &req) {
+            match gw.transfer_homeroom(session, no, &req).await {
                 Ok(updated) => emit_json_or_text(&updated, json, &updated.student_no),
                 Err(err) => emit_error(&err),
             }
@@ -140,10 +140,10 @@ pub fn execute<G: Gateway>(
                 idempotency_key: format!("cli-{cmd}-{no}-{version}"),
             };
             let result = match cmd {
-                "suspend" => gw.suspend_student(session, no, &req),
-                "resume" => gw.resume_student(session, no, &req),
-                "withdraw" => gw.withdraw_student(session, no, &req),
-                _ => gw.graduate_student(session, no, &req),
+                "suspend" => gw.suspend_student(session, no, &req).await,
+                "resume" => gw.resume_student(session, no, &req).await,
+                "withdraw" => gw.withdraw_student(session, no, &req).await,
+                _ => gw.graduate_student(session, no, &req).await,
             };
             match result {
                 Ok(updated) => emit_json_or_text(&updated, json, &updated.student_no),
@@ -162,7 +162,7 @@ pub fn execute<G: Gateway>(
                 version,
                 idempotency_key: format!("cli-reverse-{no}-{version}"),
             };
-            match gw.reverse_enrollment(session, no, &req) {
+            match gw.reverse_enrollment(session, no, &req).await {
                 Ok(updated) => emit_json_or_text(&updated, json, &updated.student_no),
                 Err(err) => emit_error(&err),
             }

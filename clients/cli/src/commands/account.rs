@@ -45,15 +45,15 @@ pub fn command() -> Command {
         )
 }
 
-pub fn execute<G: Gateway>(
-    gw: &mut G,
+pub async fn execute<G: Gateway>(
+    gw: &G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,
     yes: bool,
 ) -> u8 {
     match sub.subcommand() {
-        Some(("list", _)) => match gw.list_accounts(session) {
+        Some(("list", _)) => match gw.list_accounts(session).await {
             Ok(rows) => emit_json_or_text(&rows, json, &format!("共 {} 个账号", rows.len())),
             Err(err) => emit_error(&err),
         },
@@ -70,7 +70,7 @@ pub fn execute<G: Gateway>(
                 bound_student_no: args.get_one::<String>("student_no").cloned(),
                 idempotency_key: format!("cli-prov-{username}"),
             };
-            match gw.provision_account(session, &req) {
+            match gw.provision_account(session, &req).await {
                 Ok(created) => emit_json_or_text(&created, json, &created.username),
                 Err(err) => emit_error(&err),
             }
@@ -83,7 +83,7 @@ pub fn execute<G: Gateway>(
                 version,
                 idempotency_key: format!("cli-bind-{account_id}-{version}"),
             };
-            match gw.bind_person_profile(session, account_id, &req) {
+            match gw.bind_person_profile(session, account_id, &req).await {
                 Ok(updated) => emit_json_or_text(&updated, json, &updated.account_id),
                 Err(err) => emit_error(&err),
             }
@@ -99,7 +99,7 @@ pub fn execute<G: Gateway>(
                 version,
                 idempotency_key: format!("cli-role-{account_id}-{version}"),
             };
-            match gw.change_account_role(session, account_id, &req) {
+            match gw.change_account_role(session, account_id, &req).await {
                 Ok(updated) => emit_json_or_text(&updated, json, updated.role.label()),
                 Err(err) => emit_error(&err),
             }
@@ -116,7 +116,7 @@ pub fn execute<G: Gateway>(
                 version,
                 idempotency_key: format!("cli-dis-{account_id}-{version}"),
             };
-            match gw.disable_account(session, account_id, &req) {
+            match gw.disable_account(session, account_id, &req).await {
                 Ok(updated) => emit_json_or_text(&updated, json, updated.status.label()),
                 Err(err) => emit_error(&err),
             }

@@ -3,7 +3,7 @@ pub mod contract;
 pub mod local;
 #[cfg(feature = "mock")]
 pub mod mock;
-#[cfg(feature = "remote")]
+#[cfg(any(feature = "remote", feature = "nsh"))]
 pub mod remote;
 
 #[cfg(test)]

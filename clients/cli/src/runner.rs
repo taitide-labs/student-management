@@ -2,7 +2,7 @@ use std::io::{Write, stderr};
 
 use clap::ArgMatches;
 use student_management_gateway::{
-    contract::{AccountSession, Gateway, Role, SignInRequest},
+    contract::{AccountSession, Gateway, GatewayError, Role, SignInRequest},
     local::LocalGatewayHandle,
     remote::{RemoteGateway, RemoteGatewayConfig},
 };
@@ -12,20 +12,22 @@ use crate::commands::{
     shared::{emit_error, usage_err},
 };
 
-fn dispatch_command<G: Gateway>(
-    gw: &mut G,
+async fn dispatch_command<G: Gateway>(
+    gw: &G,
     session: &AccountSession,
     matches: &ArgMatches,
     json: bool,
     yes: bool,
 ) -> u8 {
     match matches.subcommand() {
-        Some(("account", sub)) => commands::account::execute(gw, session, sub, json, yes),
-        Some(("homeroom", sub)) => commands::homeroom::execute(gw, session, sub, json),
-        Some(("student", sub)) => commands::student::execute(gw, session, sub, json, yes),
-        Some(("course", sub)) => commands::grading::execute_course(gw, session, sub, json),
-        Some(("teaching", sub)) => commands::grading::execute_teaching(gw, session, sub, json),
-        Some(("grade", sub)) => commands::grading::execute_grade(gw, session, sub, json),
+        Some(("account", sub)) => commands::account::execute(gw, session, sub, json, yes).await,
+        Some(("homeroom", sub)) => commands::homeroom::execute(gw, session, sub, json).await,
+        Some(("student", sub)) => commands::student::execute(gw, session, sub, json, yes).await,
+        Some(("course", sub)) => commands::grading::execute_course(gw, session, sub, json).await,
+        Some(("teaching", sub)) => {
+            commands::grading::execute_teaching(gw, session, sub, json).await
+        }
+        Some(("grade", sub)) => commands::grading::execute_grade(gw, session, sub, json).await,
         _ => {
             let _err = writeln!(
                 stderr(),
@@ -36,50 +38,57 @@ fn dispatch_command<G: Gateway>(
     }
 }
 
-fn run_local(matches: &ArgMatches, json: bool, yes: bool) -> u8 {
+async fn run_local(matches: &ArgMatches, json: bool, yes: bool) -> u8 {
     let db_url = matches
         .get_one::<String>("db")
         .map_or("sqlite::memory:", String::as_str);
 
-    let mut gw = match LocalGatewayHandle::open(db_url) {
+    let gw = match LocalGatewayHandle::open(db_url).await {
         Ok(handle) => handle,
         Err(err) => return emit_error(&err),
     };
-    if let Err(err) = gw.ensure_bootstrap_admin("admin", "系统管理员", "admin") {
+    if let Err(err) = gw
+        .ensure_bootstrap_admin("admin", "系统管理员", "admin")
+        .await
+    {
         return emit_error(&err);
     }
 
     let token = matches.get_one::<String>("token").map(String::as_str);
     if let Some(("auth", sub)) = matches.subcommand() {
         let active = match token {
-            Some(tok) => gw.resolve_session(tok).ok(),
+            Some(tok) => gw.resolve_session(tok).await.ok(),
             None => gw
                 .sign_in(&SignInRequest {
                     username: "admin".to_owned(),
                     password: "admin".to_owned(),
                 })
+                .await
                 .ok(),
         };
-        return commands::auth::execute(&gw, active.as_ref(), sub, json);
+        return commands::auth::execute(&gw, active.as_ref(), sub, json).await;
     }
 
     let session = match token {
-        Some(tok) => gw.resolve_session(tok),
-        None => gw.sign_in(&SignInRequest {
-            username: "admin".to_owned(),
-            password: "admin".to_owned(),
-        }),
+        Some(tok) => gw.resolve_session(tok).await,
+        None => {
+            gw.sign_in(&SignInRequest {
+                username: "admin".to_owned(),
+                password: "admin".to_owned(),
+            })
+            .await
+        }
     };
     let session = match session {
         Ok(s) => s,
         Err(err) => return emit_error(&err),
     };
 
-    dispatch_command(&mut gw, &session, matches, json, yes)
+    dispatch_command(&gw, &session, matches, json, yes).await
 }
 
-fn run_remote(server: &str, matches: &ArgMatches, json: bool, yes: bool) -> u8 {
-    let mut gw = RemoteGateway::new(&RemoteGatewayConfig {
+async fn run_remote(server: &str, matches: &ArgMatches, json: bool, yes: bool) -> u8 {
+    let gw = RemoteGateway::new(&RemoteGatewayConfig {
         base_url: server.to_owned(),
     });
     let token = matches.get_one::<String>("token").map(String::as_str);
@@ -93,7 +102,7 @@ fn run_remote(server: &str, matches: &ArgMatches, json: bool, yes: bool) -> u8 {
     });
 
     if let Some(("auth", sub)) = matches.subcommand() {
-        return commands::auth::execute(&gw, token_session.as_ref(), sub, json);
+        return commands::auth::execute(&gw, token_session.as_ref(), sub, json).await;
     }
 
     let Some(session) = token_session else {
@@ -102,7 +111,7 @@ fn run_remote(server: &str, matches: &ArgMatches, json: bool, yes: bool) -> u8 {
         );
     };
 
-    dispatch_command(&mut gw, &session, matches, json, yes)
+    dispatch_command(&gw, &session, matches, json, yes).await
 }
 
 pub fn run(matches: &ArgMatches) -> u8 {
@@ -110,17 +119,29 @@ pub fn run(matches: &ArgMatches) -> u8 {
     let json = matches.get_flag("json");
     let yes = matches.get_flag("yes");
 
+    if !local && matches.get_one::<String>("server").is_none() {
+        let _err = writeln!(
+            stderr(),
+            "error [config_missing]: 请传入 --local 或 --server <URL> 指定运行目标。"
+        );
+        return 2;
+    }
+
+    let rt = match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(rt) => rt,
+        Err(err) => return emit_error(&GatewayError::Transport(err.to_string())),
+    };
+
     if local {
-        return run_local(matches, json, yes);
+        return rt.block_on(run_local(matches, json, yes));
     }
 
     if let Some(server) = matches.get_one::<String>("server") {
-        return run_remote(server, matches, json, yes);
+        return rt.block_on(run_remote(server, matches, json, yes));
     }
 
-    let _err = writeln!(
-        stderr(),
-        "error [config_missing]: 请传入 --local 或 --server <URL> 指定运行目标。"
-    );
     2
 }

@@ -3,9 +3,9 @@ use crate::contract::{
     UpdateHomeroomCapacityRequest,
 };
 
-use super::store::{MockGateway, problem};
+use super::store::{MockState, problem};
 
-impl MockGateway {
+impl MockState {
     pub(super) fn create_homeroom_impl(
         &mut self,
         session: &AccountSession,

@@ -76,19 +76,21 @@ pub fn provision_modal(
                 _ => Role::Teacher,
             };
             let student_no = modal.student.get_untracked();
-            match handler::execute(&active, &username, &display_name, role, &student_no) {
-                Ok(created) => {
-                    modal.open.set(false);
-                    push_toast(
-                        format!("已开通账号：{}", created.display_name),
-                        ToastTone::Success,
-                    );
+            spawn(async move {
+                match handler::execute(&active, &username, &display_name, role, &student_no).await {
+                    Ok(created) => {
+                        modal.open.set(false);
+                        push_toast(
+                            format!("已开通账号：{}", created.display_name),
+                            ToastTone::Success,
+                        );
+                    }
+                    Err(err) => {
+                        modal.error.set(Some(err.clone()));
+                        push_toast(err, ToastTone::Error);
+                    }
                 }
-                Err(err) => {
-                    modal.error.set(Some(err.clone()));
-                    push_toast(err, ToastTone::Error);
-                }
-            }
+            });
         };
 
         view()
@@ -105,7 +107,12 @@ pub fn provision_modal(
             ))
             .child(labeled_field(
                 "角色",
-                app_select(role_opts, modal.role, "选择角色", "账号角色"),
+                app_select(
+                    move || role_opts.clone(),
+                    modal.role,
+                    "选择角色",
+                    "账号角色",
+                ),
                 || None,
             ))
             .child(labeled_field(

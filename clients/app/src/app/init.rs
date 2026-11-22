@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use nsh_core::{
     desktop::{TitleBarOptions, TitleBarStyle, WindowAttributes},
@@ -6,20 +6,44 @@ use nsh_core::{
     platform::Appearance,
     prelude::*,
 };
-#[cfg(not(target_arch = "wasm32"))]
-use student_management_gateway::remote::{RemoteGateway, RemoteGatewayConfig};
-use student_management_gateway::{contract::GatewayClient, mock::MockGateway};
+use student_management_gateway::{
+    contract::GatewayClient,
+    mock::MockGateway,
+    remote::{NshRemoteGateway, RemoteGatewayConfig},
+};
 
 use crate::{gateway, ui::platform};
 
-#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone)]
+pub struct RemoteEndpoint(pub String);
+
 pub fn install_remote(base_url: &str) {
-    let trimmed = base_url.trim();
-    gateway::set_remote_base_url(trimmed);
-    let remote = RemoteGateway::new(&RemoteGatewayConfig {
-        base_url: trimmed.to_owned(),
+    let remote = NshRemoteGateway::new(&RemoteGatewayConfig {
+        base_url: base_url.trim().to_owned(),
     });
-    gateway::install(GatewayClient::new(Rc::new(RefCell::new(remote))));
+    gateway::install(GatewayClient::new(Rc::new(remote)));
+}
+
+/// 仅用于桌面独立入口解析 `--server`；`nsh_platform_*::AppOptions` 暂未透出 `EngineContext`，
+/// 且 `nsh-macros` 的 `#[derive(Props)]` 会注入 `#[allow(clippy::all)]` 与工作区 `forbid` lint 冲突，
+/// 故无法由二进制入口透传参数至根组件；E2E 与多引擎宿主仍统一经 `EngineContext` 注入。
+#[cfg(not(target_arch = "wasm32"))]
+fn server_from_args() -> Option<String> {
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if let Some(value) = arg.strip_prefix("--server=")
+            && !value.trim().is_empty()
+        {
+            return Some(value.to_owned());
+        }
+        if arg == "--server"
+            && let Some(value) = args.next()
+            && !value.trim().is_empty()
+        {
+            return Some(value);
+        }
+    }
+    None
 }
 
 pub fn configure_gateway() {
@@ -27,14 +51,13 @@ pub fn configure_gateway() {
         return;
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    if let Some(base_url) = gateway::remote_base_url() {
-        let remote = RemoteGateway::new(&RemoteGatewayConfig { base_url });
-        gateway::install(GatewayClient::new(Rc::new(RefCell::new(remote))));
+    if let Some(endpoint) = engine_context::<RemoteEndpoint>()
+        && !endpoint.0.trim().is_empty()
+    {
+        install_remote(&endpoint.0);
         return;
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(base_url) = option_env!("SMS_SERVER")
         && !base_url.trim().is_empty()
     {
@@ -42,7 +65,13 @@ pub fn configure_gateway() {
         return;
     }
 
-    let client = GatewayClient::new(Rc::new(RefCell::new(MockGateway::seeded())));
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(base_url) = server_from_args() {
+        install_remote(&base_url);
+        return;
+    }
+
+    let client = GatewayClient::new(Rc::new(MockGateway::seeded()));
     gateway::install(client);
 }
 

@@ -68,16 +68,18 @@ pub fn disable_modal(
             let id = modal.account_id.get_untracked();
             let ver = modal.version.get_untracked();
             let reason = modal.reason.get_untracked();
-            match handler::execute(&active, &id, &reason, ver) {
-                Ok(_) => {
-                    modal.open.set(false);
-                    push_toast("账号已停用", ToastTone::Success);
+            spawn(async move {
+                match handler::execute(&active, &id, &reason, ver).await {
+                    Ok(_) => {
+                        modal.open.set(false);
+                        push_toast("账号已停用", ToastTone::Success);
+                    }
+                    Err(err) => {
+                        modal.error.set(Some(err.clone()));
+                        push_toast(err, ToastTone::Error);
+                    }
                 }
-                Err(err) => {
-                    modal.error.set(Some(err.clone()));
-                    push_toast(err, ToastTone::Error);
-                }
-            }
+            });
         };
 
         view()

@@ -2,7 +2,7 @@ mod error;
 mod gateway;
 
 pub use error::GatewayError;
-pub use gateway::{Gateway, GatewayClient};
+pub use gateway::{Gateway, GatewayClient, GatewayFuture};
 pub use student_management_contracts::{
     AccountSession, AccountStatus, AccountSummary, AmendGradeRequest, AssignTeachingRequest,
     BindPersonProfileRequest, ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest,

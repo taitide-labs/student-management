@@ -18,7 +18,7 @@ pub fn command() -> Command {
         .subcommand(Command::new("logout").about("清除本地会话令牌"))
 }
 
-pub fn execute<G: Gateway>(
+pub async fn execute<G: Gateway>(
     gw: &G,
     session: Option<&AccountSession>,
     sub: &ArgMatches,
@@ -30,7 +30,7 @@ pub fn execute<G: Gateway>(
                 username: str_arg(args, "username").to_owned(),
                 password: str_arg(args, "password").to_owned(),
             };
-            match gw.sign_in(&req) {
+            match gw.sign_in(&req).await {
                 Ok(signed) => emit_json_or_text(&signed, json, &signed.access_token),
                 Err(err) => emit_error(&err),
             }

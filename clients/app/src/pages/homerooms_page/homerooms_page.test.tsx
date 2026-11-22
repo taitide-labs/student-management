@@ -2,7 +2,9 @@ import { expect, open, test } from "nsh/test";
 
 test("admin creates homeroom and updates capacity with active count guard", async () => {
   const app = await open("../../..", { width: 1200, height: 800, platform: "macos" });
-  await app.press("role:button[管理员]");
+  await app.type("text:请输入登录账号", "admin");
+  await app.type("text:输入登录密码", "demo");
+  await app.press("role:button[登录]");
   await app.waitFor("role:button[行政班]");
   await app.press("role:button[行政班]");
   await app.waitFor("role:button[新建行政班…]");

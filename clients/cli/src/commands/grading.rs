@@ -78,14 +78,14 @@ pub fn grade_command() -> Command {
         )
 }
 
-pub fn execute_course<G: Gateway>(
-    gw: &mut G,
+pub async fn execute_course<G: Gateway>(
+    gw: &G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,
 ) -> u8 {
     match sub.subcommand() {
-        Some(("list", _)) => match gw.list_courses(session) {
+        Some(("list", _)) => match gw.list_courses(session).await {
             Ok(rows) => emit_json_or_text(&rows, json, &format!("共 {} 门课程", rows.len())),
             Err(err) => emit_error(&err),
         },
@@ -104,7 +104,7 @@ pub fn execute_course<G: Gateway>(
                 pass_score,
                 idempotency_key: format!("cli-crs-{code}"),
             };
-            match gw.create_course(session, &req) {
+            match gw.create_course(session, &req).await {
                 Ok(created) => emit_json_or_text(&created, json, &created.code),
                 Err(err) => emit_error(&err),
             }
@@ -113,14 +113,14 @@ pub fn execute_course<G: Gateway>(
     }
 }
 
-pub fn execute_teaching<G: Gateway>(
-    gw: &mut G,
+pub async fn execute_teaching<G: Gateway>(
+    gw: &G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,
 ) -> u8 {
     match sub.subcommand() {
-        Some(("list", _)) => match gw.list_teachings(session) {
+        Some(("list", _)) => match gw.list_teachings(session).await {
             Ok(rows) => emit_json_or_text(&rows, json, &format!("共 {} 项教学任务", rows.len())),
             Err(err) => emit_error(&err),
         },
@@ -139,7 +139,7 @@ pub fn execute_teaching<G: Gateway>(
                 term,
                 teacher_account_id,
             };
-            match gw.assign_teaching(session, &req) {
+            match gw.assign_teaching(session, &req).await {
                 Ok(created) => emit_json_or_text(&created, json, &created.id),
                 Err(err) => emit_error(&err),
             }
@@ -148,8 +148,8 @@ pub fn execute_teaching<G: Gateway>(
     }
 }
 
-pub fn execute_grade<G: Gateway>(
-    gw: &mut G,
+pub async fn execute_grade<G: Gateway>(
+    gw: &G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,
@@ -157,7 +157,7 @@ pub fn execute_grade<G: Gateway>(
     match sub.subcommand() {
         Some(("list", args)) => {
             let no = args.get_one::<String>("student_no").map(String::as_str);
-            match gw.list_grades(session, no) {
+            match gw.list_grades(session, no).await {
                 Ok(grades) => {
                     emit_json_or_text(&grades, json, &format!("共 {} 条成绩", grades.len()))
                 }
@@ -176,7 +176,7 @@ pub fn execute_grade<G: Gateway>(
                 student_no,
                 score,
             };
-            match gw.save_draft_grade(session, &req) {
+            match gw.save_draft_grade(session, &req).await {
                 Ok(saved) => emit_json_or_text(&saved, json, &saved.score.to_string()),
                 Err(err) => emit_error(&err),
             }
@@ -187,7 +187,7 @@ pub fn execute_grade<G: Gateway>(
                 idempotency_key: format!("cli-grd-pub-{teaching_id}"),
                 teaching_id,
             };
-            match gw.publish_grades(session, &req) {
+            match gw.publish_grades(session, &req).await {
                 Ok(rows) => {
                     emit_json_or_text(&rows, json, &format!("已发布 {} 条成绩", rows.len()))
                 }
@@ -206,14 +206,14 @@ pub fn execute_grade<G: Gateway>(
                 version,
                 idempotency_key: format!("cli-grd-amd-{grade_id}-{version}"),
             };
-            match gw.amend_grade(session, grade_id, &req) {
+            match gw.amend_grade(session, grade_id, &req).await {
                 Ok(updated) => emit_json_or_text(&updated, json, &updated.score.to_string()),
                 Err(err) => emit_error(&err),
             }
         }
         Some(("amendments", args)) => {
             let grade_id = args.get_one::<String>("grade_id").map(String::as_str);
-            match gw.list_grade_amendments(session, grade_id) {
+            match gw.list_grade_amendments(session, grade_id).await {
                 Ok(rows) => emit_json_or_text(&rows, json, &format!("共 {} 条修订", rows.len())),
                 Err(err) => emit_error(&err),
             }

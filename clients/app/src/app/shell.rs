@@ -40,13 +40,11 @@ pub fn App() -> impl IntoElement {
 
     app_canvas()
         .child(dynamic(|| match identity_store::current_session() {
-            None => untracked(|| {
-                login_page(|session| {
-                    on_session_ready(&session);
-                })
-                .into_element()
+            None => untracked(|| login_page().into_element()),
+            Some(session) => untracked(|| {
+                on_session_ready(&session);
+                authenticated_shell(session.role).into_element()
             }),
-            Some(session) => untracked(|| authenticated_shell(session.role).into_element()),
         }))
         .child(toast_host())
 }

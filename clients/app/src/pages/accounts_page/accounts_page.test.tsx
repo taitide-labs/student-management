@@ -2,7 +2,9 @@ import { expect, open, test } from "nsh/test";
 
 test("admin provisions account, changes role, and disables account", async () => {
   const app = await open("../../..", { width: 1200, height: 800, platform: "macos" });
-  await app.press("role:button[管理员]");
+  await app.type("text:请输入登录账号", "admin");
+  await app.type("text:输入登录密码", "demo");
+  await app.press("role:button[登录]");
   await app.waitFor("role:button[账号]");
   await app.press("role:button[账号]");
   await app.waitFor("role:button[开通账号…]");

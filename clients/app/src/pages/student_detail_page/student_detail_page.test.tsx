@@ -2,7 +2,9 @@ import { expect, open, test } from "nsh/test";
 
 test("drilling into student detail shows enrollment history and pops back", async () => {
   const app = await open("../../..", { width: 1200, height: 800, platform: "macos" });
-  await app.press("role:button[管理员]");
+  await app.type("text:请输入登录账号", "admin");
+  await app.type("text:输入登录密码", "demo");
+  await app.press("role:button[登录]");
   await app.waitFor("张晓明");
 
   await app.press("张晓明");
@@ -16,7 +18,9 @@ test("drilling into student detail shows enrollment history and pops back", asyn
 
 test("admin executes transfer, suspend, resume, withdraw, and terminal reversal", async () => {
   const app = await open("../../..", { width: 1200, height: 800, platform: "macos" });
-  await app.press("role:button[管理员]");
+  await app.type("text:请输入登录账号", "admin");
+  await app.type("text:输入登录密码", "demo");
+  await app.press("role:button[登录]");
   await app.waitFor("张晓明");
 
   await app.press("张晓明");

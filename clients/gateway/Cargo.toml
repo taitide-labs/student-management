@@ -13,9 +13,11 @@ workspace = true
 default = []
 mock = []
 remote = ["dep:ureq"]
+nsh = ["dep:nsh-core"]
 local = ["dep:student-management-runtime", "dep:tokio"]
 
 [dependencies]
+nsh-core = { workspace = true, optional = true }
 rust_decimal.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -26,3 +28,6 @@ tokio = { workspace = true, optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 ureq = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

@@ -25,11 +25,11 @@ pub fn student_detail_page<
     on_back: U,
 ) -> impl IntoElement + use<T, U> {
     let target = student_no.to_owned();
+    if let Some(active) = untracked(session) {
+        store::load_student_detail(&active, &target);
+    }
     let modal = TransitionModalState::new();
-    let detail = move || {
-        modal.track_refresh();
-        session().and_then(|active| store::student_detail(&active, &target).ok())
-    };
+    let detail = move || store::current_student_detail(&target);
     let is_wide = computed(|| window().width >= px(720.0));
     let is_admin = move || session().is_some_and(|s| s.role == Role::Admin);
     let student_no_for_modal = student_no.to_owned();

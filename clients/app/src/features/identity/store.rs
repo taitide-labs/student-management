@@ -44,17 +44,24 @@ pub fn accounts() -> Vec<AccountSummary> {
     accounts_state().with(|s| s.accounts.clone())
 }
 
-pub fn load_accounts(session: &AccountSession) {
+pub async fn refresh_accounts(session: &AccountSession) {
     if session.role != Role::Admin {
         accounts_state().update(|s| s.accounts.clear());
         return;
     }
-    if let Ok(rows) = gateway::client().with(|gw| gw.list_accounts(session)) {
+    if let Ok(rows) = gateway::client().list_accounts(session).await {
         accounts_state().update(|s| s.accounts = rows);
     }
 }
 
-pub fn change_account_role(
+pub fn load_accounts(session: &AccountSession) {
+    let active = session.clone();
+    spawn(async move {
+        refresh_accounts(&active).await;
+    });
+}
+
+pub async fn change_account_role(
     session: &AccountSession,
     account_id: &str,
     role: Role,
@@ -66,9 +73,10 @@ pub fn change_account_role(
         idempotency_key: next_key("acc-role"),
     };
     let updated = gateway::client()
-        .with_mut(|gw| gw.change_account_role(session, account_id, &req))
+        .change_account_role(session, account_id, &req)
+        .await
         .map_err(|err| SharedString::from(err.to_string()))?;
-    load_accounts(session);
+    refresh_accounts(session).await;
     Ok(updated)
 }
 
@@ -77,18 +85,13 @@ pub fn auth_error() -> Option<SharedString> {
     state().with(|s| s.error.clone())
 }
 
-pub fn sign_in(username: &str, password: &str) -> Result<AccountSession, SharedString> {
+pub async fn sign_in(username: &str, password: &str) {
     let req = SignInRequest {
         username: username.to_owned(),
         password: password.to_owned(),
     };
-    let result = gateway::client().with(|gw| gw.sign_in(&req));
-    apply_result(result)
-}
-
-pub fn quick_sign_in(role: Role) -> Result<AccountSession, SharedString> {
-    let result = gateway::client().with(|gw| gw.switch_role(role));
-    apply_result(result)
+    let result = gateway::client().sign_in(&req).await;
+    drop(apply_result(result));
 }
 
 fn apply_result(

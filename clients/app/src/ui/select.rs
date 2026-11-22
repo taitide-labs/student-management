@@ -20,7 +20,7 @@ impl SelectOption {
 }
 
 pub fn app_select(
-    items: Vec<SelectOption>,
+    items: impl Fn() -> Vec<SelectOption> + Clone + 'static,
     selected: Signal<Option<SharedString>>,
     placeholder: &'static str,
     accessibility_label: &'static str,
@@ -32,13 +32,14 @@ pub fn app_select(
         px(32.0)
     };
     let display_items = items.clone();
-    let base_items = items
-        .into_iter()
-        .map(|opt| SelectItem::new(opt.value, opt.label))
-        .collect::<Vec<_>>();
 
     select()
-        .items(base_items)
+        .items(move || {
+            items()
+                .into_iter()
+                .map(|opt| SelectItem::new(opt.value, opt.label))
+                .collect::<Vec<_>>()
+        })
         .value(move || selected.get())
         .on_change(move |next: &Option<SharedString>| selected.set(next.clone()))
         .accessibility_label(accessibility_label)
@@ -85,10 +86,10 @@ pub fn app_select(
                         let current = selected.get();
                         current
                             .and_then(|val| {
-                                display_items
-                                    .iter()
+                                display_items()
+                                    .into_iter()
                                     .find(|item| item.value == val)
-                                    .map(|item| item.label.clone())
+                                    .map(|item| item.label)
                             })
                             .unwrap_or_else(|| SharedString::from(placeholder))
                     })

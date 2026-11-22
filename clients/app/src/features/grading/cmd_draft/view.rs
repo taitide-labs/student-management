@@ -27,7 +27,7 @@ impl DraftModalState {
         Self {
             open: signal(false),
             teaching: signal(None),
-            student_no: signal(String::from("20261001")),
+            student_no: signal(String::new()),
             score: signal(String::new()),
             error: signal(None),
         }
@@ -36,7 +36,7 @@ impl DraftModalState {
     pub fn open_dialog(self) {
         self.teaching
             .set(store::default_draft_teaching_id().map(SharedString::from));
-        self.student_no.set(String::from("20261001"));
+        self.student_no.set(String::new());
         self.score.set(String::new());
         self.error.set(None);
         self.open.set(true);
@@ -55,10 +55,12 @@ pub fn grading_toolbar(
             push_toast("暂无可发布的教学任务。", ToastTone::Error);
             return;
         };
-        match handler::publish_teaching(&active, &target) {
-            Ok(count) => push_toast(format!("已锁分发布 {count} 条成绩"), ToastTone::Success),
-            Err(err) => push_toast(err, ToastTone::Error),
-        }
+        spawn(async move {
+            match handler::publish_teaching(&active, &target).await {
+                Ok(count) => push_toast(format!("已锁分发布 {count} 条成绩"), ToastTone::Success),
+                Err(err) => push_toast(err, ToastTone::Error),
+            }
+        });
     };
 
     view()
@@ -86,10 +88,6 @@ pub fn draft_modal(
     modal: DraftModalState,
 ) -> impl IntoElement {
     modal_sheet(modal.open, "保存成绩草稿", move || {
-        let teach_opts = store::teachings()
-            .into_iter()
-            .map(|t| SelectOption::new(t.id, format!("{} · {}", t.course_code, t.homeroom_name)))
-            .collect::<Vec<_>>();
         let submit = move || {
             let Some(active) = session() else {
                 return;
@@ -101,23 +99,40 @@ pub fn draft_modal(
                 .unwrap_or_default();
             let student_no = modal.student_no.get_untracked();
             let score_raw = modal.score.get_untracked();
-            match handler::save_draft(&active, &teaching_id, &student_no, &score_raw) {
-                Ok(_) => {
-                    modal.open.set(false);
-                    push_toast("已保存成绩草稿", ToastTone::Success);
+            spawn(async move {
+                match handler::save_draft(&active, &teaching_id, &student_no, &score_raw).await {
+                    Ok(_) => {
+                        modal.open.set(false);
+                        push_toast("已保存成绩草稿", ToastTone::Success);
+                    }
+                    Err(err) => {
+                        modal.error.set(Some(err.clone()));
+                        push_toast(err, ToastTone::Error);
+                    }
                 }
-                Err(err) => {
-                    modal.error.set(Some(err.clone()));
-                    push_toast(err, ToastTone::Error);
-                }
-            }
+            });
         };
 
         view()
             .gap_3()
             .child(labeled_field(
                 "教学任务",
-                app_select(teach_opts, modal.teaching, "选择教学任务", "教学任务"),
+                app_select(
+                    || {
+                        store::teachings()
+                            .into_iter()
+                            .map(|t| {
+                                SelectOption::new(
+                                    t.id,
+                                    format!("{} · {}", t.course_code, t.homeroom_name),
+                                )
+                            })
+                            .collect()
+                    },
+                    modal.teaching,
+                    "选择教学任务",
+                    "教学任务",
+                ),
                 || None,
             ))
             .child(labeled_field(

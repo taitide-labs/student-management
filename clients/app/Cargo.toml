@@ -13,7 +13,7 @@ workspace = true
 nsh-base.workspace = true
 nsh-core.workspace = true
 rust_decimal.workspace = true
-student-management-gateway = { path = "../gateway", default-features = false, features = ["remote", "mock"] }
+student-management-gateway = { path = "../gateway", default-features = false, features = ["nsh", "mock"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 nsh-platform-linux.workspace = true

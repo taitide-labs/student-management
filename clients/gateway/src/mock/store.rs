@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, future::ready};
 
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -8,8 +8,8 @@ use crate::{
         AccountSession, AccountStatus, AccountSummary, AmendGradeRequest, AssignTeachingRequest,
         BindPersonProfileRequest, ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest,
         CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, EnrollmentChangeRecord,
-        EnrollmentStatus, Gateway, GatewayError, GradeAmendmentRecord, GradeEntrySummary,
-        GradeStatus, HomeroomSummary, ProblemDetails, ProvisionAccountRequest,
+        EnrollmentStatus, Gateway, GatewayError, GatewayFuture, GradeAmendmentRecord,
+        GradeEntrySummary, GradeStatus, HomeroomSummary, ProblemDetails, ProvisionAccountRequest,
         PublishGradesRequest, ReverseEnrollmentRequest, Role, SaveDraftGradeRequest, SignInRequest,
         StudentDetailPayload, StudentSummary, TeachingSummary, TransferHomeroomRequest,
         TransitionStudentRequest, UpdateHomeroomCapacityRequest,
@@ -21,7 +21,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub struct MockGateway {
+pub(super) struct MockState {
     pub(super) accounts: Vec<AccountSummary>,
     pub(super) homerooms: Vec<HomeroomSummary>,
     pub(super) students: Vec<StudentSummary>,
@@ -35,6 +35,11 @@ pub struct MockGateway {
     simulate_offline: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct MockGateway {
+    state: RefCell<MockState>,
+}
+
 impl Default for MockGateway {
     fn default() -> Self {
         Self::seeded()
@@ -44,6 +49,23 @@ impl Default for MockGateway {
 impl MockGateway {
     #[must_use]
     pub fn seeded() -> Self {
+        Self {
+            state: RefCell::new(MockState::seeded()),
+        }
+    }
+
+    pub fn set_offline(&self, offline: bool) {
+        self.state.borrow_mut().simulate_offline = offline;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn switch_role(&self, role: Role) -> Result<AccountSession, GatewayError> {
+        self.state.borrow().switch_role_impl(role)
+    }
+}
+
+impl MockState {
+    fn seeded() -> Self {
         Self {
             accounts: seed_accounts(),
             homerooms: seed_homerooms(),
@@ -131,104 +153,7 @@ impl MockGateway {
             .ok_or_else(|| problem(404, "student_not_found", "学籍不存在", "未找到对应学号。"))
     }
 
-    fn transition_status(
-        &mut self,
-        session: &AccountSession,
-        student_no: &str,
-        req: &TransitionStudentRequest,
-        target: EnrollmentStatus,
-        action_name: &str,
-    ) -> Result<StudentSummary, GatewayError> {
-        self.ensure_online()?;
-        Self::ensure_admin(session)?;
-        let fp = format!("transition:{student_no}:{target:?}:{}", req.reason.trim());
-        if let Some(cached) = self.check_idempotent::<StudentSummary>(&req.idempotency_key, &fp)? {
-            return Ok(cached);
-        }
-        let reason = req.reason.trim();
-        if reason.is_empty() {
-            return Err(problem(
-                422,
-                "validation_failed",
-                "异动原因不能为空",
-                "学籍状态流转必须附带明确原因。",
-            ));
-        }
-        let idx = self.find_student_mut(student_no)?;
-        let current =
-            self.students.get(idx).cloned().ok_or_else(|| {
-                problem(404, "student_not_found", "学籍不存在", "未找到对应学号。")
-            })?;
-        if current.version != req.version {
-            return Err(problem(
-                409,
-                "version_conflict",
-                "数据版本冲突",
-                "学籍记录已被其他操作更新，请刷新后重试。",
-            ));
-        }
-        let allowed = matches!(
-            (current.status, target),
-            (
-                EnrollmentStatus::Active,
-                EnrollmentStatus::Suspended
-                    | EnrollmentStatus::Withdrawn
-                    | EnrollmentStatus::Graduated
-            ) | (
-                EnrollmentStatus::Suspended,
-                EnrollmentStatus::Active | EnrollmentStatus::Withdrawn
-            )
-        );
-        if !allowed {
-            return Err(problem(
-                409,
-                "invalid_status_transition",
-                "非法学籍状态流转",
-                "当前学籍状态不允许直接变更为目标状态。",
-            ));
-        }
-        if target.is_terminal()
-            && let Some(room) = self
-                .homerooms
-                .iter_mut()
-                .find(|r| r.id == current.homeroom_id)
-        {
-            room.active_count = room.active_count.saturating_sub(1);
-            room.version += 1;
-        }
-        let Some(slot) = self.students.get_mut(idx) else {
-            return Err(problem(
-                404,
-                "student_not_found",
-                "学籍不存在",
-                "未找到对应学号。",
-            ));
-        };
-        let from_summary = format!("{} · {}", slot.homeroom_name, slot.status.label());
-        slot.status = target;
-        slot.version += 1;
-        let updated = slot.clone();
-        let to_summary = format!("{} · {}", updated.homeroom_name, updated.status.label());
-        self.changes.insert(
-            0,
-            EnrollmentChangeRecord {
-                id: format!("chg-{}", self.changes.len() + 1),
-                student_no: updated.student_no.clone(),
-                action: action_name.to_owned(),
-                from_summary,
-                to_summary,
-                reason: reason.to_owned(),
-                operator_name: session.display_name.clone(),
-                occurred_at: "2026-11-22 17:00".to_owned(),
-            },
-        );
-        self.record_idempotent(&req.idempotency_key, fp, &updated)?;
-        Ok(updated)
-    }
-}
-
-impl Gateway for MockGateway {
-    fn sign_in(&self, req: &SignInRequest) -> Result<AccountSession, GatewayError> {
+    fn sign_in_impl(&self, req: &SignInRequest) -> Result<AccountSession, GatewayError> {
         self.ensure_online()?;
         let username = req.username.trim();
         if username.is_empty() || req.password.trim().is_empty() {
@@ -262,7 +187,8 @@ impl Gateway for MockGateway {
         Ok(to_session(account))
     }
 
-    fn switch_role(&self, role: Role) -> Result<AccountSession, GatewayError> {
+    #[cfg(test)]
+    fn switch_role_impl(&self, role: Role) -> Result<AccountSession, GatewayError> {
         self.ensure_online()?;
         self.accounts
             .iter()
@@ -278,29 +204,12 @@ impl Gateway for MockGateway {
             })
     }
 
-    fn list_homerooms(&self) -> Result<Vec<HomeroomSummary>, GatewayError> {
+    fn list_homerooms_impl(&self) -> Result<Vec<HomeroomSummary>, GatewayError> {
         self.ensure_online()?;
         Ok(self.homerooms.clone())
     }
 
-    fn create_homeroom(
-        &mut self,
-        session: &AccountSession,
-        req: &CreateHomeroomRequest,
-    ) -> Result<HomeroomSummary, GatewayError> {
-        self.create_homeroom_impl(session, req)
-    }
-
-    fn update_homeroom_capacity(
-        &mut self,
-        session: &AccountSession,
-        homeroom_id: &str,
-        req: &UpdateHomeroomCapacityRequest,
-    ) -> Result<HomeroomSummary, GatewayError> {
-        self.update_homeroom_capacity_impl(session, homeroom_id, req)
-    }
-
-    fn list_students(
+    fn list_students_impl(
         &self,
         session: &AccountSession,
         query: &str,
@@ -332,7 +241,7 @@ impl Gateway for MockGateway {
         Ok(rows)
     }
 
-    fn student_detail(
+    fn student_detail_impl(
         &self,
         session: &AccountSession,
         student_no: &str,
@@ -362,7 +271,7 @@ impl Gateway for MockGateway {
         Ok(StudentDetailPayload { student, changes })
     }
 
-    fn enroll_student(
+    fn enroll_student_impl(
         &mut self,
         session: &AccountSession,
         req: &EnrollStudentRequest,
@@ -437,7 +346,7 @@ impl Gateway for MockGateway {
         Ok(student)
     }
 
-    fn transfer_homeroom(
+    fn transfer_homeroom_impl(
         &mut self,
         session: &AccountSession,
         student_no: &str,
@@ -538,67 +447,102 @@ impl Gateway for MockGateway {
         Ok(updated)
     }
 
-    fn suspend_student(
+    fn transition_status(
         &mut self,
         session: &AccountSession,
         student_no: &str,
         req: &TransitionStudentRequest,
+        target: EnrollmentStatus,
+        action_name: &str,
     ) -> Result<StudentSummary, GatewayError> {
-        self.transition_status(
-            session,
-            student_no,
-            req,
-            EnrollmentStatus::Suspended,
-            "休学登记",
-        )
+        self.ensure_online()?;
+        Self::ensure_admin(session)?;
+        let fp = format!("transition:{student_no}:{target:?}:{}", req.reason.trim());
+        if let Some(cached) = self.check_idempotent::<StudentSummary>(&req.idempotency_key, &fp)? {
+            return Ok(cached);
+        }
+        let reason = req.reason.trim();
+        if reason.is_empty() {
+            return Err(problem(
+                422,
+                "validation_failed",
+                "异动原因不能为空",
+                "学籍状态流转必须附带明确原因。",
+            ));
+        }
+        let idx = self.find_student_mut(student_no)?;
+        let current =
+            self.students.get(idx).cloned().ok_or_else(|| {
+                problem(404, "student_not_found", "学籍不存在", "未找到对应学号。")
+            })?;
+        if current.version != req.version {
+            return Err(problem(
+                409,
+                "version_conflict",
+                "数据版本冲突",
+                "学籍记录已被其他操作更新，请刷新后重试。",
+            ));
+        }
+        let allowed = matches!(
+            (current.status, target),
+            (
+                EnrollmentStatus::Active,
+                EnrollmentStatus::Suspended
+                    | EnrollmentStatus::Withdrawn
+                    | EnrollmentStatus::Graduated
+            ) | (
+                EnrollmentStatus::Suspended,
+                EnrollmentStatus::Active | EnrollmentStatus::Withdrawn
+            )
+        );
+        if !allowed {
+            return Err(problem(
+                409,
+                "invalid_status_transition",
+                "非法学籍状态流转",
+                "当前学籍状态不允许直接变更为目标状态。",
+            ));
+        }
+        if target.is_terminal()
+            && let Some(room) = self
+                .homerooms
+                .iter_mut()
+                .find(|r| r.id == current.homeroom_id)
+        {
+            room.active_count = room.active_count.saturating_sub(1);
+            room.version += 1;
+        }
+        let Some(slot) = self.students.get_mut(idx) else {
+            return Err(problem(
+                404,
+                "student_not_found",
+                "学籍不存在",
+                "未找到对应学号。",
+            ));
+        };
+        let from_summary = format!("{} · {}", slot.homeroom_name, slot.status.label());
+        slot.status = target;
+        slot.version += 1;
+        let updated = slot.clone();
+        let to_summary = format!("{} · {}", updated.homeroom_name, updated.status.label());
+        self.changes.insert(
+            0,
+            EnrollmentChangeRecord {
+                id: format!("chg-{}", self.changes.len() + 1),
+                student_no: updated.student_no.clone(),
+                action: action_name.to_owned(),
+                from_summary,
+                to_summary,
+                reason: reason.to_owned(),
+                operator_name: session.display_name.clone(),
+                occurred_at: "2026-11-22 17:00".to_owned(),
+            },
+        );
+        self.record_idempotent(&req.idempotency_key, fp, &updated)?;
+        Ok(updated)
     }
 
-    fn resume_student(
-        &mut self,
-        session: &AccountSession,
-        student_no: &str,
-        req: &TransitionStudentRequest,
-    ) -> Result<StudentSummary, GatewayError> {
-        self.transition_status(
-            session,
-            student_no,
-            req,
-            EnrollmentStatus::Active,
-            "复学登记",
-        )
-    }
-
-    fn withdraw_student(
-        &mut self,
-        session: &AccountSession,
-        student_no: &str,
-        req: &TransitionStudentRequest,
-    ) -> Result<StudentSummary, GatewayError> {
-        self.transition_status(
-            session,
-            student_no,
-            req,
-            EnrollmentStatus::Withdrawn,
-            "退学登记",
-        )
-    }
-
-    fn graduate_student(
-        &mut self,
-        session: &AccountSession,
-        student_no: &str,
-        req: &TransitionStudentRequest,
-    ) -> Result<StudentSummary, GatewayError> {
-        self.transition_status(
-            session,
-            student_no,
-            req,
-            EnrollmentStatus::Graduated,
-            "毕业离校",
-        )
-    }
-
-    fn reverse_enrollment(
+    fn reverse_enrollment_impl(
         &mut self,
         session: &AccountSession,
         student_no: &str,
@@ -691,34 +635,7 @@ impl Gateway for MockGateway {
         Ok(updated)
     }
 
-    fn list_courses(&self, session: &AccountSession) -> Result<Vec<CourseSummary>, GatewayError> {
-        self.list_courses_impl(session)
-    }
-
-    fn create_course(
-        &mut self,
-        session: &AccountSession,
-        req: &CreateCourseRequest,
-    ) -> Result<CourseSummary, GatewayError> {
-        self.create_course_impl(session, req)
-    }
-
-    fn list_teachings(
-        &self,
-        session: &AccountSession,
-    ) -> Result<Vec<TeachingSummary>, GatewayError> {
-        self.list_teachings_impl(session)
-    }
-
-    fn assign_teaching(
-        &mut self,
-        session: &AccountSession,
-        req: &AssignTeachingRequest,
-    ) -> Result<TeachingSummary, GatewayError> {
-        self.assign_teaching_impl(session, req)
-    }
-
-    fn list_grades(
+    fn list_grades_impl(
         &self,
         session: &AccountSession,
         student_no: Option<&str>,
@@ -745,81 +662,305 @@ impl Gateway for MockGateway {
                 .collect();
         Ok(rows)
     }
+}
 
-    fn save_draft_grade(
-        &mut self,
-        session: &AccountSession,
-        req: &SaveDraftGradeRequest,
-    ) -> Result<GradeEntrySummary, GatewayError> {
-        self.save_draft_grade_impl(session, req)
+impl Gateway for MockGateway {
+    fn sign_in<'a>(
+        &'a self,
+        req: &'a SignInRequest,
+    ) -> GatewayFuture<'a, Result<AccountSession, GatewayError>> {
+        Box::pin(ready(self.state.borrow().sign_in_impl(req)))
     }
 
-    fn publish_grades(
-        &mut self,
-        session: &AccountSession,
-        req: &PublishGradesRequest,
-    ) -> Result<Vec<GradeEntrySummary>, GatewayError> {
-        self.publish_grades_impl(session, req)
+    fn list_homerooms(&self) -> GatewayFuture<'_, Result<Vec<HomeroomSummary>, GatewayError>> {
+        Box::pin(ready(self.state.borrow().list_homerooms_impl()))
     }
 
-    fn amend_grade(
-        &mut self,
-        session: &AccountSession,
-        grade_id: &str,
-        req: &AmendGradeRequest,
-    ) -> Result<GradeEntrySummary, GatewayError> {
-        self.amend_grade_impl(session, grade_id, req)
+    fn create_homeroom<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        req: &'a CreateHomeroomRequest,
+    ) -> GatewayFuture<'a, Result<HomeroomSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state.borrow_mut().create_homeroom_impl(session, req),
+        ))
     }
 
-    fn list_grade_amendments(
-        &self,
-        session: &AccountSession,
-        grade_id: Option<&str>,
-    ) -> Result<Vec<GradeAmendmentRecord>, GatewayError> {
-        self.list_grade_amendments_impl(session, grade_id)
+    fn update_homeroom_capacity<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        homeroom_id: &'a str,
+        req: &'a UpdateHomeroomCapacityRequest,
+    ) -> GatewayFuture<'a, Result<HomeroomSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state
+                .borrow_mut()
+                .update_homeroom_capacity_impl(session, homeroom_id, req),
+        ))
     }
 
-    fn list_accounts(&self, session: &AccountSession) -> Result<Vec<AccountSummary>, GatewayError> {
-        self.list_accounts_impl(session)
+    fn list_students<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        query: &'a str,
+        status_filter: Option<EnrollmentStatus>,
+    ) -> GatewayFuture<'a, Result<Vec<StudentSummary>, GatewayError>> {
+        Box::pin(ready(self.state.borrow().list_students_impl(
+            session,
+            query,
+            status_filter,
+        )))
     }
 
-    fn provision_account(
-        &mut self,
-        session: &AccountSession,
-        req: &ProvisionAccountRequest,
-    ) -> Result<AccountSummary, GatewayError> {
-        self.provision_account_impl(session, req)
+    fn student_detail<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        student_no: &'a str,
+    ) -> GatewayFuture<'a, Result<StudentDetailPayload, GatewayError>> {
+        Box::pin(ready(
+            self.state.borrow().student_detail_impl(session, student_no),
+        ))
     }
 
-    fn bind_person_profile(
-        &mut self,
-        session: &AccountSession,
-        account_id: &str,
-        req: &BindPersonProfileRequest,
-    ) -> Result<AccountSummary, GatewayError> {
-        self.bind_person_profile_impl(session, account_id, req)
+    fn enroll_student<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        req: &'a EnrollStudentRequest,
+    ) -> GatewayFuture<'a, Result<StudentSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state.borrow_mut().enroll_student_impl(session, req),
+        ))
     }
 
-    fn change_account_role(
-        &mut self,
-        session: &AccountSession,
-        account_id: &str,
-        req: &ChangeAccountRoleRequest,
-    ) -> Result<AccountSummary, GatewayError> {
-        self.change_account_role_impl(session, account_id, req)
+    fn transfer_homeroom<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        student_no: &'a str,
+        req: &'a TransferHomeroomRequest,
+    ) -> GatewayFuture<'a, Result<StudentSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state
+                .borrow_mut()
+                .transfer_homeroom_impl(session, student_no, req),
+        ))
     }
 
-    fn disable_account(
-        &mut self,
-        session: &AccountSession,
-        account_id: &str,
-        req: &DisableAccountRequest,
-    ) -> Result<AccountSummary, GatewayError> {
-        self.disable_account_impl(session, account_id, req)
+    fn suspend_student<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        student_no: &'a str,
+        req: &'a TransitionStudentRequest,
+    ) -> GatewayFuture<'a, Result<StudentSummary, GatewayError>> {
+        Box::pin(ready(self.state.borrow_mut().transition_status(
+            session,
+            student_no,
+            req,
+            EnrollmentStatus::Suspended,
+            "休学登记",
+        )))
     }
 
-    fn set_offline(&mut self, offline: bool) {
-        self.simulate_offline = offline;
+    fn resume_student<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        student_no: &'a str,
+        req: &'a TransitionStudentRequest,
+    ) -> GatewayFuture<'a, Result<StudentSummary, GatewayError>> {
+        Box::pin(ready(self.state.borrow_mut().transition_status(
+            session,
+            student_no,
+            req,
+            EnrollmentStatus::Active,
+            "复学登记",
+        )))
+    }
+
+    fn withdraw_student<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        student_no: &'a str,
+        req: &'a TransitionStudentRequest,
+    ) -> GatewayFuture<'a, Result<StudentSummary, GatewayError>> {
+        Box::pin(ready(self.state.borrow_mut().transition_status(
+            session,
+            student_no,
+            req,
+            EnrollmentStatus::Withdrawn,
+            "退学登记",
+        )))
+    }
+
+    fn graduate_student<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        student_no: &'a str,
+        req: &'a TransitionStudentRequest,
+    ) -> GatewayFuture<'a, Result<StudentSummary, GatewayError>> {
+        Box::pin(ready(self.state.borrow_mut().transition_status(
+            session,
+            student_no,
+            req,
+            EnrollmentStatus::Graduated,
+            "毕业离校",
+        )))
+    }
+
+    fn reverse_enrollment<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        student_no: &'a str,
+        req: &'a ReverseEnrollmentRequest,
+    ) -> GatewayFuture<'a, Result<StudentSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state
+                .borrow_mut()
+                .reverse_enrollment_impl(session, student_no, req),
+        ))
+    }
+
+    fn list_courses<'a>(
+        &'a self,
+        session: &'a AccountSession,
+    ) -> GatewayFuture<'a, Result<Vec<CourseSummary>, GatewayError>> {
+        Box::pin(ready(self.state.borrow().list_courses_impl(session)))
+    }
+
+    fn create_course<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        req: &'a CreateCourseRequest,
+    ) -> GatewayFuture<'a, Result<CourseSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state.borrow_mut().create_course_impl(session, req),
+        ))
+    }
+
+    fn list_teachings<'a>(
+        &'a self,
+        session: &'a AccountSession,
+    ) -> GatewayFuture<'a, Result<Vec<TeachingSummary>, GatewayError>> {
+        Box::pin(ready(self.state.borrow().list_teachings_impl(session)))
+    }
+
+    fn assign_teaching<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        req: &'a AssignTeachingRequest,
+    ) -> GatewayFuture<'a, Result<TeachingSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state.borrow_mut().assign_teaching_impl(session, req),
+        ))
+    }
+
+    fn list_grades<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        student_no: Option<&'a str>,
+    ) -> GatewayFuture<'a, Result<Vec<GradeEntrySummary>, GatewayError>> {
+        Box::pin(ready(
+            self.state.borrow().list_grades_impl(session, student_no),
+        ))
+    }
+
+    fn save_draft_grade<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        req: &'a SaveDraftGradeRequest,
+    ) -> GatewayFuture<'a, Result<GradeEntrySummary, GatewayError>> {
+        Box::pin(ready(
+            self.state.borrow_mut().save_draft_grade_impl(session, req),
+        ))
+    }
+
+    fn publish_grades<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        req: &'a PublishGradesRequest,
+    ) -> GatewayFuture<'a, Result<Vec<GradeEntrySummary>, GatewayError>> {
+        Box::pin(ready(
+            self.state.borrow_mut().publish_grades_impl(session, req),
+        ))
+    }
+
+    fn amend_grade<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        grade_id: &'a str,
+        req: &'a AmendGradeRequest,
+    ) -> GatewayFuture<'a, Result<GradeEntrySummary, GatewayError>> {
+        Box::pin(ready(
+            self.state
+                .borrow_mut()
+                .amend_grade_impl(session, grade_id, req),
+        ))
+    }
+
+    fn list_grade_amendments<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        grade_id: Option<&'a str>,
+    ) -> GatewayFuture<'a, Result<Vec<GradeAmendmentRecord>, GatewayError>> {
+        Box::pin(ready(
+            self.state
+                .borrow()
+                .list_grade_amendments_impl(session, grade_id),
+        ))
+    }
+
+    fn list_accounts<'a>(
+        &'a self,
+        session: &'a AccountSession,
+    ) -> GatewayFuture<'a, Result<Vec<AccountSummary>, GatewayError>> {
+        Box::pin(ready(self.state.borrow().list_accounts_impl(session)))
+    }
+
+    fn provision_account<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        req: &'a ProvisionAccountRequest,
+    ) -> GatewayFuture<'a, Result<AccountSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state.borrow_mut().provision_account_impl(session, req),
+        ))
+    }
+
+    fn bind_person_profile<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        account_id: &'a str,
+        req: &'a BindPersonProfileRequest,
+    ) -> GatewayFuture<'a, Result<AccountSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state
+                .borrow_mut()
+                .bind_person_profile_impl(session, account_id, req),
+        ))
+    }
+
+    fn change_account_role<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        account_id: &'a str,
+        req: &'a ChangeAccountRoleRequest,
+    ) -> GatewayFuture<'a, Result<AccountSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state
+                .borrow_mut()
+                .change_account_role_impl(session, account_id, req),
+        ))
+    }
+
+    fn disable_account<'a>(
+        &'a self,
+        session: &'a AccountSession,
+        account_id: &'a str,
+        req: &'a DisableAccountRequest,
+    ) -> GatewayFuture<'a, Result<AccountSummary, GatewayError>> {
+        Box::pin(ready(
+            self.state
+                .borrow_mut()
+                .disable_account_impl(session, account_id, req),
+        ))
     }
 }
 

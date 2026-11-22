@@ -11,9 +11,9 @@ use crate::{
     mock::MockGateway,
 };
 
-#[test]
-fn enroll_idempotency_replays_same_payload_and_rejects_mismatch() {
-    let mut gw = MockGateway::seeded();
+#[tokio::test]
+async fn enroll_idempotency_replays_same_payload_and_rejects_mismatch() {
+    let gw = MockGateway::seeded();
     let admin = gw.switch_role(Role::Admin).expect("admin session");
 
     let first = gw
@@ -25,6 +25,7 @@ fn enroll_idempotency_replays_same_payload_and_rejects_mismatch() {
                 idempotency_key: "idem-enroll-1".to_owned(),
             },
         )
+        .await
         .expect("first enroll");
     let replay = gw
         .enroll_student(
@@ -35,6 +36,7 @@ fn enroll_idempotency_replays_same_payload_and_rejects_mismatch() {
                 idempotency_key: "idem-enroll-1".to_owned(),
             },
         )
+        .await
         .expect("idempotent replay must return identical student");
     assert_eq!(first.student_no, replay.student_no);
 
@@ -47,13 +49,14 @@ fn enroll_idempotency_replays_same_payload_and_rejects_mismatch() {
                 idempotency_key: "idem-enroll-1".to_owned(),
             },
         )
+        .await
         .expect_err("different payload with same idempotency key must reject 409");
     assert!(matches!(mismatch, GatewayError::Problem(p) if p.code == "idempotency_key_conflict"));
 }
 
-#[test]
-fn status_lifecycle_and_optimistic_version_lock() {
-    let mut gw = MockGateway::seeded();
+#[tokio::test]
+async fn status_lifecycle_and_optimistic_version_lock() {
+    let gw = MockGateway::seeded();
     let admin = gw.switch_role(Role::Admin).expect("admin session");
 
     let stale = gw
@@ -67,6 +70,7 @@ fn status_lifecycle_and_optimistic_version_lock() {
                 idempotency_key: "idem-tr-1".to_owned(),
             },
         )
+        .await
         .expect_err("stale version must reject 409");
     assert!(matches!(stale, GatewayError::Problem(p) if p.code == "version_conflict"));
 
@@ -80,6 +84,7 @@ fn status_lifecycle_and_optimistic_version_lock() {
                 idempotency_key: "idem-wd-1".to_owned(),
             },
         )
+        .await
         .expect("withdraw should succeed");
     assert_eq!(withdrawn.status, EnrollmentStatus::Withdrawn);
 
@@ -93,6 +98,7 @@ fn status_lifecycle_and_optimistic_version_lock() {
                 idempotency_key: "idem-rs-1".to_owned(),
             },
         )
+        .await
         .expect_err("terminal status cannot resume directly");
     assert!(
         matches!(invalid_resume, GatewayError::Problem(p) if p.code == "invalid_status_transition")
@@ -109,16 +115,18 @@ fn status_lifecycle_and_optimistic_version_lock() {
                 idempotency_key: "idem-rev-1".to_owned(),
             },
         )
+        .await
         .expect("reverse enrollment should succeed");
     assert_eq!(reversed.status, EnrollmentStatus::Active);
 }
 
-#[test]
-fn student_reads_only_published_grades() {
+#[tokio::test]
+async fn student_reads_only_published_grades() {
     let gw = MockGateway::seeded();
     let student = gw.switch_role(Role::Student).expect("student session");
     let grades = gw
         .list_grades(&student, Some("20261001"))
+        .await
         .expect("student grades");
     assert_eq!(grades.len(), 1);
     assert_eq!(
@@ -127,9 +135,9 @@ fn student_reads_only_published_grades() {
     );
 }
 
-#[test]
-fn homeroom_capacity_cannot_drop_below_active_count() {
-    let mut gw = MockGateway::seeded();
+#[tokio::test]
+async fn homeroom_capacity_cannot_drop_below_active_count() {
+    let gw = MockGateway::seeded();
     let admin = gw.switch_role(Role::Admin).expect("admin session");
 
     let created = gw
@@ -142,6 +150,7 @@ fn homeroom_capacity_cannot_drop_below_active_count() {
                 idempotency_key: "idem-hr-create-1".to_owned(),
             },
         )
+        .await
         .expect("create homeroom");
     assert_eq!(created.name, "高一 3 班");
 
@@ -155,15 +164,16 @@ fn homeroom_capacity_cannot_drop_below_active_count() {
                 idempotency_key: "idem-hr-cap-1".to_owned(),
             },
         )
+        .await
         .expect_err("cannot shrink capacity below active student count");
     assert!(
         matches!(err, GatewayError::Problem(p) if p.code == "homeroom_capacity_below_active_count")
     );
 }
 
-#[test]
-fn grading_draft_publish_and_admin_only_amendment_audit() {
-    let mut gw = MockGateway::seeded();
+#[tokio::test]
+async fn grading_draft_publish_and_admin_only_amendment_audit() {
+    let gw = MockGateway::seeded();
     let admin = gw.switch_role(Role::Admin).expect("admin session");
     let teacher = gw.switch_role(Role::Teacher).expect("teacher session");
 
@@ -178,6 +188,7 @@ fn grading_draft_publish_and_admin_only_amendment_audit() {
                 idempotency_key: "idem-crs-1".to_owned(),
             },
         )
+        .await
         .expect("create course");
     let teaching = gw
         .assign_teaching(
@@ -190,6 +201,7 @@ fn grading_draft_publish_and_admin_only_amendment_audit() {
                 idempotency_key: "idem-tch-1".to_owned(),
             },
         )
+        .await
         .expect("assign teaching");
 
     let draft = gw
@@ -202,6 +214,7 @@ fn grading_draft_publish_and_admin_only_amendment_audit() {
                 idempotency_key: "idem-grd-save-1".to_owned(),
             },
         )
+        .await
         .expect("teacher saves draft grade");
     assert_eq!(draft.status, GradeStatus::Draft);
 
@@ -213,6 +226,7 @@ fn grading_draft_publish_and_admin_only_amendment_audit() {
                 idempotency_key: "idem-grd-pub-1".to_owned(),
             },
         )
+        .await
         .expect("publish grades");
     let entry = published.first().expect("published grade entry");
     assert_eq!(entry.status, GradeStatus::Published);
@@ -228,6 +242,7 @@ fn grading_draft_publish_and_admin_only_amendment_audit() {
                 idempotency_key: "idem-grd-amd-t".to_owned(),
             },
         )
+        .await
         .expect_err("teacher must not amend published grades");
     assert!(matches!(teacher_amend, GatewayError::Problem(p) if p.status == 403));
 
@@ -242,11 +257,13 @@ fn grading_draft_publish_and_admin_only_amendment_audit() {
                 idempotency_key: "idem-grd-amd-a".to_owned(),
             },
         )
+        .await
         .expect("admin amends published grade");
     assert_eq!(amended.score, Decimal::new(90, 0));
 
     let audits = gw
         .list_grade_amendments(&admin, Some(&entry.id))
+        .await
         .expect("list grade amendments");
     assert_eq!(audits.len(), 1);
     assert_eq!(
@@ -255,9 +272,9 @@ fn grading_draft_publish_and_admin_only_amendment_audit() {
     );
 }
 
-#[test]
-fn account_provisioning_role_change_and_disable_blocks_sign_in() {
-    let mut gw = MockGateway::seeded();
+#[tokio::test]
+async fn account_provisioning_role_change_and_disable_blocks_sign_in() {
+    let gw = MockGateway::seeded();
     let admin = gw.switch_role(Role::Admin).expect("admin session");
 
     let created = gw
@@ -271,6 +288,7 @@ fn account_provisioning_role_change_and_disable_blocks_sign_in() {
                 idempotency_key: "idem-acc-1".to_owned(),
             },
         )
+        .await
         .expect("provision account");
     assert_eq!(created.status, AccountStatus::Active);
 
@@ -284,6 +302,7 @@ fn account_provisioning_role_change_and_disable_blocks_sign_in() {
                 idempotency_key: "idem-acc-role-1".to_owned(),
             },
         )
+        .await
         .expect("change account role");
     assert_eq!(promoted.role, Role::Admin);
 
@@ -297,6 +316,7 @@ fn account_provisioning_role_change_and_disable_blocks_sign_in() {
                 idempotency_key: "idem-acc-dis-1".to_owned(),
             },
         )
+        .await
         .expect("disable account");
     assert_eq!(disabled.status, AccountStatus::Disabled);
 
@@ -305,6 +325,7 @@ fn account_provisioning_role_change_and_disable_blocks_sign_in() {
             username: "teacher2".to_owned(),
             password: "demo".to_owned(),
         })
+        .await
         .expect_err("disabled account cannot sign in");
     assert!(matches!(login_err, GatewayError::Problem(p) if p.code == "account_disabled"));
 }

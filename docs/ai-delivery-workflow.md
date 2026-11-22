@@ -35,43 +35,28 @@ flowchart TD
 | **3. 客户端切片单元测试** | `clients/app/src/features/<ctx>/<slice>/tests.rs` | 客户端设计 AI | **阶段 2**（随前端原型同步写出） | **直接写且立即可跑通** | 前端输入校验与命令组装只依赖 `contracts` DTO，不依赖后端是否实现。 |
 | **4. 后端切片黑盒验收测试** | `contexts/*/features/tests/acceptance/<slice>.rs` | 架构/基线 AI | **阶段 3 写出（标 `#[ignore = "wip"]`），阶段 4 激活** | **能！非常稳定** | 仅通过 HTTP `oneshot` 测输入/输出 JSON、状态码、幂等与 DB 结果；跨上下文 Port 用 `Fake*Port` 隔绝，完全不碰切片内部代码。 |
 | **5. API / Gateway 契约测试** | `backend/api/src/tests/`<br>`clients/gateway/src/tests/` | 架构/客户端 AI | **阶段 2–3** | **能（按 `Active` 数量渐进调整）** | 守卫 `OpenAPI` 结构、`Planned` 隐藏策略与 `MockGateway` 契约一致。 |
-| **6. Page UI 验收测试** | `clients/app/src/pages/<page>/*.test.tsx` | 客户端设计 AI | **阶段 2**（随原型即写即绿） | **能！非常稳定** | 通过 `nsh/test` 无头运行，后端全部由 `MockGateway` 承接，不依赖后端切片实现。 |
+| **6. Page UI 验收测试** | `clients/app/src/pages/<page>/*.test.tsx` | 客户端设计 AI | **阶段 2**（随原型即写即绿） | **能！非常稳定** | 通过 `mise run client`（`nsh test clients/app`）无头运行，后端由 `MockGateway` 承接，独立于后端切片实现。 |
 | **7. CLI 本地子进程验收** | `clients/cli/tests/cli_acceptance/` | CLI/集成 AI | **阶段 2 写命令框架测试，阶段 5 接真实 DB** | **仅参数/退出码部分稳定；真 DB 需待切片激活** | 早期依赖 `MockGateway`；切到 `--local --db` 真实运行时后，必须依赖后端切片与合法主键/幂等键才能稳定通过。 |
 | **8. `runtime` 跨上下文测试** | `backend/runtime/tests/` | 架构/集成 AI | **阶段 3 可先留 `#[ignore = "wip"]` 场景契约，阶段 5 激活** | **行为可预写，断言依赖全部关联切片激活** | 直接通过 `AppState` 调用跨上下文 `handler::execute` 与 `dispatch_outbox`（不经 HTTP），需相关上下文全部切片激活后转绿。 |
-| **9. 页面入口跨端 E2E 测试** | `e2e/tests/` | 集成 AI | **阶段 5**（切片与 `RemoteGateway` 全部就绪后） | **不建议过早写死细节，应在阶段 5 落地** | 驱动真实 Page (`nsh_testing::Headless`) → `RemoteGateway` → 真实 API Server → SQLite。过早编写容易受真实登录方式、真实学号生成规则与 UI 表单默认值漂移影响而返工。 |
+| **9. 页面入口跨端 E2E 测试** | `e2e/tests/` | 集成 AI | **阶段 5**（切片与远端网关全部就绪后） | **不建议过早写死细节，应在阶段 5 落地** | 驱动真实 Page (`nsh_testing::Headless`) 经 `NshRemoteGateway`（`UreqNetwork`）访问真实 API Server 与 SQLite；可通过 `mise run e2e` 单独复验。 |
 
 ---
 
-## 3. 从本次交付中提炼的工作流优化建议（减少摩擦）
+## 3. 工程执行规范
 
-### 建议 1：保持 `runtime` 为纯组合根，并在阶段 3 冻结 `handler::execute` 存根
+1. **保持 `runtime` 为纯组合根**
+   - 在阶段 3 冻结全部切片的 `handler::execute` 签名、`endpoint.rs`（`Planned`）以及 `clients/gateway` 转发；阶段 4 多工作树并行期间，切片实现仅触及自身切片目录与对应 `acceptance` 测试。
+   - 本地部署形态通过 `LocalGatewayHandle` 直接调度 `slice::handler::execute`，不建立中心透传包装层。
 
-- **核心原则**：`Local` 只是客户端本地部署形态（服务 CLI / 离线 TUI，且纯本地项目严禁引入 Axum），与后端垂直切片无关。
-- **零冲突落地规范**：
-  1. 在 **阶段 3** 连同 `endpoint.rs`（`Planned`）一起，把每个切片的 `handler::execute(&AppState, &OperatorPrincipal, ReqDTO) -> Result<RespDTO, ProblemDetails>` 空签名存根一并落盘冻结；同时 `clients/gateway/src/{local,remote}/` 在阶段 2–3 一次性写完转发代码（不再保留 `planned_err` 客户端占位）。
-  2. `backend/runtime` 仅作为组合根（`bootstrap.rs` 装配 `AppState` + 汇总导出上下文模块），严禁额外编写逐切片透传的 `executor.rs`。阶段 4 多 Worktree 并行实现时，每个切片 AI **100% 只改自己切片目录与验收测试**。
+2. **客户端网络接入与 Mock 边界**
+   - 页面、功能切片与命令仅依赖 `Gateway` 异步特征和 `contracts` DTO，严禁硬编码 Mock 主键、默认演示密码或仅 Mock 可用的快捷入口。
+   - `clients/app` 通过 `nsh_core::prelude::global` 管理当前引擎实例的网关句柄，E2E 与多实例宿主经 `EngineContext` 注入 `RemoteEndpoint`，禁止在业务或页面层引入 `thread_local!` 或跨实例全局可变静态变量。
 
-### 建议 2：网络与运行时模式纯配置化，杜绝渲染线程状态撕裂
+3. **幂等键与测试池事务纪律**
+   - 客户端构造幂等键统一进行空白转义与长度截断，符合 `IdempotencyKey` 校验规范。
+   - 需要 `#[rstest]` 参数化矩阵的切片验收测试统一采用 `#[tokio::test]` 与 `open_sqlite_pool("sqlite::memory:")`；所有外部 `Port` 查询必须在数据库事务开始前完成，以避免 `:memory:` 单连接池死锁。
 
-- **痛点**：客户端最初使用 `thread_local! ACTIVE_GATEWAY`，在 `nsh-engine` 独立 UI 线程上失效；切换 `Mock` / `Local` / `Remote` 时缺乏统一配置结构体。
-- **改进方向**：在组合根定义显式启动配置：
-
-  ```rust
-  pub enum GatewayMode {
-      MockSeeded,
-      Remote { base_url: String },
-  }
-  ```
-
-  在阶段 2 客户端设计之初就将该配置对象接入跨线程共享入口（`RwLock` 或引擎环境注入），让页面在 `pages/*.test.tsx` 跑 `MockSeeded`、在 `e2e/` 跑 `Remote { base_url }`、在桌面发布跑 `SMS_SERVER / --server` **完全复用同一套启动逻辑，无需任何代码改动**。
-
-### 建议 3：尽早在阶段 2 对齐测试数据前置条件与真实后端约束
-
-- **痛点**：阶段 2 客户端 `MockGateway` 预设 `"20261001"` 与演示快速角色按钮，而真实后端 `cmd_enroll_student` 首号生成 `"20260001"`、且 `RemoteGateway` 禁用 `switch_role` 需真实账号密码认证，导致阶段 5 E2E 联调时需要额外对齐默认值或清框重填。
-- **改进方向**：在阶段 2 客户端设计审查时即明确两条约束：
-  1. 跨端联调路径上的所有演示表单不得把 Mock 专用主键硬编码为不可清除状态，且 `login_page` 真实表单的默认账密、错误提示须可直接驱动 `/api/v1/auth/sign-in`。
-  2. 客户端生成幂等键必须通过统一的“去空白 + 截断”工具函数构造，确保对接真实 `IdempotencyKey` 原语校验零失败。
-
-### 建议 4：严格区分 `#[sqlx::test]` 与 `#[rstest]`、避免内存池死锁
-
-- **写测试边界律令**：需要 `#[rstest]` 参数化矩阵的切片验收测试，统一用 `#[tokio::test]` + `open_sqlite_pool("sqlite::memory:")`，避免与 `#[sqlx::test]` 宏属性发生冲突；所有在事务外调用 `Port` 的约定必须在阶段 3 `acceptance` 阶段即以 `:memory:`（单连接）跑实，第一时间暴露任何事务内调 `Port` 的潜在死锁。
+4. **分级校验命令**
+   - 日常快速校验：`mise run check` 执行文档、`ast-grep`、Clippy、工作区 Rust 测试与依赖安全审计。
+   - 客户端界面验收：修改 `clients/app` 或 `clients/gateway` 后，按需执行 `mise run client`（`nsh test clients/app`）。
+   - 跨端 E2E 复验：调整真实 HTTP 链路或页面流程后，执行 `mise run e2e`。

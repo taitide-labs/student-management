@@ -1,5 +1,8 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 
+[env]
+RUSTC_WRAPPER = "sccache"
+
 [tools]
 hk = "2.12"
 rumdl = "0.3.3"
@@ -16,19 +19,23 @@ sccache = "0.19.0"
 
 [tasks.fmt]
 description = "Auto-fix documentation formatting, typography, and code formatting"
-run = "hk fix --all --silent -n"
+run = "hk fix --all -q -n"
 
 [tasks.lock]
 description = "Update Cargo.lock for workspace dependency changes"
 run = "cargo generate-lockfile"
 
 [tasks.client]
-description = "Run headless client tests"
+description = "Run headless NSH client UI acceptance tests"
 run = "nsh test clients/app"
 
+[tasks.e2e]
+description = "Run end-to-end UI to API integration tests"
+run = "cargo nextest run --manifest-path Cargo.toml -p student-management-e2e --locked"
+
 [tasks.check]
-description = "Run all documentation, formatting, ast-grep, clippy, test, dependency audit, and client checks"
-run = ["hk check --all --silent -n", "cargo deny check", "nsh test clients/app"]
+description = "Run fast workspace checks (docs, fmt, ast-grep, clippy, Rust tests, and cargo-deny)"
+run = ["hk check --all -q -n", "cargo deny check"]
 
 [tasks.app]
 description = "Run macOS desktop client"

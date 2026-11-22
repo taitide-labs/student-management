@@ -20,7 +20,7 @@ path = "tests/grading_publish_and_amend_e2e.rs"
 [dev-dependencies]
 axum.workspace = true
 nsh-engine.workspace = true
-nsh-testing.workspace = true
+nsh-testing = { workspace = true, features = ["live"] }
 rust_decimal.workspace = true
 student-management-api = { path = "../backend/api" }
 student-management-app = { path = "../clients/app" }

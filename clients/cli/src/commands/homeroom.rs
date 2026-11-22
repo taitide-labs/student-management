@@ -27,14 +27,14 @@ pub fn command() -> Command {
         )
 }
 
-pub fn execute<G: Gateway>(
-    gw: &mut G,
+pub async fn execute<G: Gateway>(
+    gw: &G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,
 ) -> u8 {
     match sub.subcommand() {
-        Some(("list", _)) => match gw.list_homerooms() {
+        Some(("list", _)) => match gw.list_homerooms().await {
             Ok(rooms) => emit_json_or_text(&rooms, json, &format!("共 {} 个行政班", rooms.len())),
             Err(err) => emit_error(&err),
         },
@@ -50,7 +50,7 @@ pub fn execute<G: Gateway>(
                 capacity,
                 idempotency_key: make_idempotency_key("cli-hr-create", name),
             };
-            match gw.create_homeroom(session, &req) {
+            match gw.create_homeroom(session, &req).await {
                 Ok(created) => emit_json_or_text(&created, json, &created.name),
                 Err(err) => emit_error(&err),
             }
@@ -66,7 +66,10 @@ pub fn execute<G: Gateway>(
                 version,
                 idempotency_key: format!("cli-hr-cap-{homeroom_id}-{version}"),
             };
-            match gw.update_homeroom_capacity(session, homeroom_id, &req) {
+            match gw
+                .update_homeroom_capacity(session, homeroom_id, &req)
+                .await
+            {
                 Ok(updated) => emit_json_or_text(&updated, json, &updated.name),
                 Err(err) => emit_error(&err),
             }

@@ -66,16 +66,18 @@ pub fn amend_modal(
             let ver = modal.version.get_untracked();
             let score = modal.score.get_untracked();
             let reason = modal.reason.get_untracked();
-            match handler::execute(&active, &id, ver, &score, &reason) {
-                Ok(_) => {
-                    modal.open.set(false);
-                    push_toast("已完成成绩合规修订", ToastTone::Success);
+            spawn(async move {
+                match handler::execute(&active, &id, ver, &score, &reason).await {
+                    Ok(_) => {
+                        modal.open.set(false);
+                        push_toast("已完成成绩合规修订", ToastTone::Success);
+                    }
+                    Err(err) => {
+                        modal.error.set(Some(err.clone()));
+                        push_toast(err, ToastTone::Error);
+                    }
                 }
-                Err(err) => {
-                    modal.error.set(Some(err.clone()));
-                    push_toast(err, ToastTone::Error);
-                }
-            }
+            });
         };
 
         view()

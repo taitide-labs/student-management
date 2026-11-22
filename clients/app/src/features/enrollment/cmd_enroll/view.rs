@@ -54,32 +54,30 @@ pub fn enroll_dialog(
     state: EnrollDialogState,
 ) -> impl IntoElement {
     modal_sheet(state.open, "新生入学建档", move || {
-        let room_options = store::homerooms()
-            .into_iter()
-            .map(|room| SelectOption::new(room.id, room.name))
-            .collect::<Vec<_>>();
         let submit = move || {
             let Some(active) = session() else {
                 return;
             };
             let name = state.name.get_untracked();
             let room = state.room.get_untracked().map(|v| v.to_string());
-            match handler::execute(&active, &name, room.as_deref()) {
-                Ok(created) => {
-                    state.open.set(false);
-                    push_toast(
-                        format!(
-                            "已办理入学：{}（{}）",
-                            created.full_name, created.student_no
-                        ),
-                        ToastTone::Success,
-                    );
+            spawn(async move {
+                match handler::execute(&active, &name, room.as_deref()).await {
+                    Ok(created) => {
+                        state.open.set(false);
+                        push_toast(
+                            format!(
+                                "已办理入学：{}（{}）",
+                                created.full_name, created.student_no
+                            ),
+                            ToastTone::Success,
+                        );
+                    }
+                    Err(err) => {
+                        state.error.set(Some(err.clone()));
+                        push_toast(err, ToastTone::Error);
+                    }
                 }
-                Err(err) => {
-                    state.error.set(Some(err.clone()));
-                    push_toast(err, ToastTone::Error);
-                }
-            }
+            });
         };
 
         view()
@@ -91,7 +89,17 @@ pub fn enroll_dialog(
             ))
             .child(labeled_field(
                 "行政班",
-                app_select(room_options, state.room, "选择行政班", "目标行政班"),
+                app_select(
+                    || {
+                        store::homerooms()
+                            .into_iter()
+                            .map(|room| SelectOption::new(room.id, room.name))
+                            .collect()
+                    },
+                    state.room,
+                    "选择行政班",
+                    "目标行政班",
+                ),
                 move || state.error.get(),
             ))
             .child(

@@ -3,10 +3,10 @@ use student_management_gateway::contract::{AccountSession, GradeEntrySummary};
 
 use crate::gateway;
 
-use super::super::store::{load_grading, next_key};
+use super::super::store::{next_key, refresh_grading};
 use super::command;
 
-pub fn execute(
+pub async fn execute(
     session: &AccountSession,
     grade_id: &str,
     version: u64,
@@ -16,8 +16,9 @@ pub fn execute(
     let req = command::build_request(score_raw, reason, version, next_key("grd-amd"))
         .map_err(SharedString::from)?;
     let updated = gateway::client()
-        .with_mut(|gw| gw.amend_grade(session, grade_id, &req))
+        .amend_grade(session, grade_id, &req)
+        .await
         .map_err(|err| SharedString::from(err.to_string()))?;
-    load_grading(session);
+    refresh_grading(session).await;
     Ok(updated)
 }

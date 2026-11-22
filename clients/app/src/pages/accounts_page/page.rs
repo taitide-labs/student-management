@@ -125,17 +125,24 @@ fn account_card(
                         false,
                         move || {
                             if let Some(active) = session() {
-                                match store::change_account_role(&active, &id, next_role, ver) {
-                                    Ok(updated) => push_toast(
-                                        format!(
-                                            "已将 {} 调整为{}",
-                                            updated.display_name,
-                                            updated.role.label()
+                                let target_id = id.clone();
+                                spawn(async move {
+                                    match store::change_account_role(
+                                        &active, &target_id, next_role, ver,
+                                    )
+                                    .await
+                                    {
+                                        Ok(updated) => push_toast(
+                                            format!(
+                                                "已将 {} 调整为{}",
+                                                updated.display_name,
+                                                updated.role.label()
+                                            ),
+                                            ToastTone::Success,
                                         ),
-                                        ToastTone::Success,
-                                    ),
-                                    Err(err) => push_toast(err, ToastTone::Error),
-                                }
+                                        Err(err) => push_toast(err, ToastTone::Error),
+                                    }
+                                });
                             }
                         },
                     )

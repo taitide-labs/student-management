@@ -32,14 +32,14 @@ pub async fn start_live_server() -> LiveApiServer {
     let state = build_app_state("sqlite::memory:")
         .await
         .expect("build runtime state");
-    ensure_bootstrap_admin(&state, "admin", "系统管理员", "demo")
+    ensure_bootstrap_admin(&state, "admin", "系统管理员", "admin")
         .await
         .expect("bootstrap admin");
     let admin_session = identity::cmd_sign_in::handler::execute(
         &state,
         SignInRequest {
             username: "admin".to_owned(),
-            password: "demo".to_owned(),
+            password: "admin".to_owned(),
         },
     )
     .await

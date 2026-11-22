@@ -26,17 +26,25 @@ pub fn next_key(prefix: &str) -> String {
     format!("{prefix}-{seq}")
 }
 
-pub fn load_grading(session: &AccountSession) {
-    let loaded = gateway::client().with(|gw| {
-        let teachings = gw.list_teachings(session).unwrap_or_default();
-        let grades = gw.list_grades(session, None).unwrap_or_default();
-        let amendments = gw.list_grade_amendments(session, None).unwrap_or_default();
-        (teachings, grades, amendments)
-    });
+pub async fn refresh_grading(session: &AccountSession) {
+    let gw = gateway::client();
+    let teachings = gw.list_teachings(session).await.unwrap_or_default();
+    let grades = gw.list_grades(session, None).await.unwrap_or_default();
+    let amendments = gw
+        .list_grade_amendments(session, None)
+        .await
+        .unwrap_or_default();
     state().update(|s| {
-        s.teachings = loaded.0;
-        s.grades = loaded.1;
-        s.amendments = loaded.2;
+        s.teachings = teachings;
+        s.grades = grades;
+        s.amendments = amendments;
+    });
+}
+
+pub fn load_grading(session: &AccountSession) {
+    let active = session.clone();
+    spawn(async move {
+        refresh_grading(&active).await;
     });
 }
 

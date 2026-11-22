@@ -6,9 +6,9 @@ use crate::contract::{
     PublishGradesRequest, Role, SaveDraftGradeRequest, TeachingSummary,
 };
 
-use super::store::{MockGateway, problem};
+use super::store::{MockState, problem};
 
-impl MockGateway {
+impl MockState {
     pub(super) fn list_courses_impl(
         &self,
         _session: &AccountSession,

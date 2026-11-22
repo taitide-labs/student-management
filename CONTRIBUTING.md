@@ -27,10 +27,17 @@ hk install --mise
   mise run fmt
   ```
 
-- 执行全量只读静态检查、测试与依赖安全审计：
+- 执行快速全工作区静态检查、Rust 测试与依赖安全审计：
 
   ```sh
   mise run check
+  ```
+
+- 按需单独运行 NSH 客户端无头 UI 验收或跨端 E2E 场景（修改 `clients/app`、`clients/gateway` 或端到端链路时执行）：
+
+  ```sh
+  mise run client
+  mise run e2e
   ```
 
 ## 3. 提交与版本规范

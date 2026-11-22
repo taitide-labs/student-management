@@ -3,10 +3,10 @@ use student_management_gateway::contract::{AccountSession, StudentSummary};
 
 use crate::gateway;
 
-use super::super::store::{load_roster, next_idempotency_key};
+use super::super::store::{next_idempotency_key, refresh_roster};
 use super::command;
 
-pub fn execute(
+pub async fn execute(
     session: &AccountSession,
     full_name: &str,
     homeroom_id: Option<&str>,
@@ -14,8 +14,9 @@ pub fn execute(
     let req = command::build_request(full_name, homeroom_id, next_idempotency_key("enroll"))
         .map_err(SharedString::from)?;
     let created = gateway::client()
-        .with_mut(|gw| gw.enroll_student(session, &req))
+        .enroll_student(session, &req)
+        .await
         .map_err(|err| SharedString::from(err.to_string()))?;
-    load_roster(session);
+    refresh_roster(session).await;
     Ok(created)
 }
