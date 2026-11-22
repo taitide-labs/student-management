@@ -1,9 +1,9 @@
 use sqlx::Row;
 use student_management_contracts::{
     AccountSession, AccountSummary, BindPersonProfileRequest, ChangeAccountRoleRequest,
-    CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, HomeroomSummary,
-    OperatorPrincipal, ProblemDetails, ProvisionAccountRequest, SignInRequest, StudentSummary,
-    UpdateHomeroomCapacityRequest,
+    CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus,
+    HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest, SignInRequest,
+    StudentSummary, UpdateHomeroomCapacityRequest,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
 
@@ -167,6 +167,21 @@ impl LocalBackend {
             operator,
             homeroom_id,
             req,
+        )
+        .await
+    }
+
+    pub async fn list_students(
+        &self,
+        operator: &OperatorPrincipal,
+        query: &str,
+        status_filter: Option<EnrollmentStatus>,
+    ) -> Result<Vec<StudentSummary>, ProblemDetails> {
+        student_management_enrollment_features::qry_students::handler::execute(
+            &self.state,
+            operator,
+            query,
+            status_filter,
         )
         .await
     }

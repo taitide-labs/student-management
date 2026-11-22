@@ -109,11 +109,14 @@ impl Gateway for LocalGatewayHandle {
 
     fn list_students(
         &self,
-        _session: &AccountSession,
-        _query: &str,
-        _status_filter: Option<EnrollmentStatus>,
+        session: &AccountSession,
+        query: &str,
+        status_filter: Option<EnrollmentStatus>,
     ) -> Result<Vec<StudentSummary>, GatewayError> {
-        Err(planned_err("enrollment::qry_students"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.list_students(&operator, query, status_filter))
+            .map_err(GatewayError::Problem)
     }
 
     fn student_detail(
