@@ -305,11 +305,14 @@ impl Gateway for LocalGatewayHandle {
 
     fn amend_grade(
         &mut self,
-        _session: &AccountSession,
-        _grade_id: &str,
-        _req: &AmendGradeRequest,
+        session: &AccountSession,
+        grade_id: &str,
+        req: &AmendGradeRequest,
     ) -> Result<GradeEntrySummary, GatewayError> {
-        Err(planned_err("grading::cmd_amend_grade"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.amend_grade(&operator, grade_id, req.clone()))
+            .map_err(GatewayError::Problem)
     }
 
     fn list_grade_amendments(

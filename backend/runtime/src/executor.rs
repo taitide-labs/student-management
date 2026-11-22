@@ -1,9 +1,9 @@
 use sqlx::Row;
 use student_management_contracts::{
-    AccountSession, AccountSummary, AssignTeachingRequest, BindPersonProfileRequest,
-    ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest, CreateHomeroomRequest,
-    DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus, GradeEntrySummary,
-    HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest,
+    AccountSession, AccountSummary, AmendGradeRequest, AssignTeachingRequest,
+    BindPersonProfileRequest, ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest,
+    CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus,
+    GradeEntrySummary, HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest,
     PublishGradesRequest, ReverseEnrollmentRequest, SaveDraftGradeRequest, SignInRequest,
     StudentDetailPayload, StudentSummary, TeachingSummary, TransferHomeroomRequest,
     TransitionStudentRequest, UpdateHomeroomCapacityRequest,
@@ -381,6 +381,21 @@ impl LocalBackend {
         student_management_grading_features::cmd_publish_grades::handler::execute(
             &self.state,
             operator,
+            req,
+        )
+        .await
+    }
+
+    pub async fn amend_grade(
+        &self,
+        operator: &OperatorPrincipal,
+        grade_id: &str,
+        req: AmendGradeRequest,
+    ) -> Result<GradeEntrySummary, ProblemDetails> {
+        student_management_grading_features::cmd_amend_grade::handler::execute(
+            &self.state,
+            operator,
+            grade_id,
             req,
         )
         .await
