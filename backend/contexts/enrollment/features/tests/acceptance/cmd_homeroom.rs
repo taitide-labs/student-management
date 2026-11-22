@@ -7,7 +7,6 @@ use student_management_contracts::{
 use super::support::{router, seed_operator, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn create_homeroom_and_reject_capacity_below_active_count(pool: SqlitePool) {
     seed_operator(&pool, "acc-admin", "admin", "tok-admin").await;
     let app = router(pool);

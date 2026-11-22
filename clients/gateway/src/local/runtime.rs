@@ -94,11 +94,17 @@ impl Gateway for LocalGatewayHandle {
 
     fn update_homeroom_capacity(
         &mut self,
-        _session: &AccountSession,
-        _homeroom_id: &str,
-        _req: &UpdateHomeroomCapacityRequest,
+        session: &AccountSession,
+        homeroom_id: &str,
+        req: &UpdateHomeroomCapacityRequest,
     ) -> Result<HomeroomSummary, GatewayError> {
-        Err(planned_err("enrollment::cmd_update_homeroom_capacity"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(
+                self.backend
+                    .update_homeroom_capacity(&operator, homeroom_id, req.clone()),
+            )
+            .map_err(GatewayError::Problem)
     }
 
     fn list_students(

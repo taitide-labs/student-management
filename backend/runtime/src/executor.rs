@@ -3,6 +3,7 @@ use student_management_contracts::{
     AccountSession, AccountSummary, BindPersonProfileRequest, ChangeAccountRoleRequest,
     CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, HomeroomSummary,
     OperatorPrincipal, ProblemDetails, ProvisionAccountRequest, SignInRequest, StudentSummary,
+    UpdateHomeroomCapacityRequest,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
 
@@ -150,6 +151,21 @@ impl LocalBackend {
         student_management_enrollment_features::cmd_create_homeroom::handler::execute(
             &self.state,
             operator,
+            req,
+        )
+        .await
+    }
+
+    pub async fn update_homeroom_capacity(
+        &self,
+        operator: &OperatorPrincipal,
+        homeroom_id: &str,
+        req: UpdateHomeroomCapacityRequest,
+    ) -> Result<HomeroomSummary, ProblemDetails> {
+        student_management_enrollment_features::cmd_update_homeroom_capacity::handler::execute(
+            &self.state,
+            operator,
+            homeroom_id,
             req,
         )
         .await
