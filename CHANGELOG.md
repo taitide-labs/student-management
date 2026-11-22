@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/taitide-labs/student-management/compare/v0.1.1...v0.1.2) (2026-11-22)
+
+
+### Bug Fixes
+
+* **api:** normalize CRLF line endings in OpenAPI contract test ([#9](https://github.com/taitide-labs/student-management/issues/9)) ([77376dd](https://github.com/taitide-labs/student-management/commit/77376ddc321d7e4834a671343c5c91554028f157))
+
 ## [0.1.1](https://github.com/taitide-labs/student-management/compare/v0.1.0...v0.1.1) (2026-11-22)
 
 
