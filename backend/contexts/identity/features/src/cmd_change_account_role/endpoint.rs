@@ -1,6 +1,15 @@
-use axum::{Json, Router, extract::Path, http::StatusCode, routing::patch};
+use axum::{
+    Json, Router,
+    extract::{Path, State},
+    http::{HeaderMap, StatusCode, header::AUTHORIZATION},
+    routing::patch,
+};
 use student_management_contracts::{AccountSummary, ChangeAccountRoleRequest, ProblemDetails};
-use student_management_infra::{HttpMethod, SliceDescriptor, SliceStatus, state::AppState};
+use student_management_infra::{
+    AppState, HttpMethod, SliceDescriptor, SliceStatus, authenticate_bearer,
+};
+
+use super::handler;
 
 #[utoipa::path(
     patch,
@@ -14,15 +23,24 @@ use student_management_infra::{HttpMethod, SliceDescriptor, SliceStatus, state::
     )
 )]
 pub async fn change_account_role(
-    Path(_account_id): Path<String>,
-    Json(_req): Json<ChangeAccountRoleRequest>,
-) -> (StatusCode, Json<ProblemDetails>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(ProblemDetails::not_implemented(
-            "identity::cmd_change_account_role",
-        )),
-    )
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(account_id): Path<String>,
+    Json(req): Json<ChangeAccountRoleRequest>,
+) -> Result<(StatusCode, Json<AccountSummary>), (StatusCode, Json<ProblemDetails>)> {
+    let auth_header = headers.get(AUTHORIZATION).and_then(|v| v.to_str().ok());
+    let operator = authenticate_bearer(&state.pool, auth_header)
+        .await
+        .map_err(problem_response)?;
+    let summary = handler::execute(&state, &operator, &account_id, req)
+        .await
+        .map_err(problem_response)?;
+    Ok((StatusCode::OK, Json(summary)))
+}
+
+fn problem_response(problem: ProblemDetails) -> (StatusCode, Json<ProblemDetails>) {
+    let status = StatusCode::from_u16(problem.status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+    (status, Json(problem))
 }
 
 fn route() -> Router<AppState> {
@@ -37,6 +55,6 @@ inventory::submit!(SliceDescriptor {
     slice: "cmd_change_account_role",
     method: HttpMethod::Patch,
     path: "/api/v1/accounts/{account_id}/role",
-    status: SliceStatus::Planned,
+    status: SliceStatus::Active,
     route,
 });

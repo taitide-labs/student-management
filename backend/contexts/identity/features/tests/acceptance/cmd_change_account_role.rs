@@ -5,7 +5,6 @@ use student_management_contracts::{AccountSummary, ChangeAccountRoleRequest, Rol
 use super::support::{router, seed_account, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn change_account_role_from_student_clears_bound_student_no(pool: SqlitePool) {
     seed_account(&pool, "acc-admin", "admin", "admin", "pw", "tok-admin").await;
     seed_account(&pool, "acc-stu", "stu01", "student", "pw", "tok-stu").await;

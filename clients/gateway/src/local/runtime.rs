@@ -284,11 +284,17 @@ impl Gateway for LocalGatewayHandle {
 
     fn change_account_role(
         &mut self,
-        _session: &AccountSession,
-        _account_id: &str,
-        _req: &ChangeAccountRoleRequest,
+        session: &AccountSession,
+        account_id: &str,
+        req: &ChangeAccountRoleRequest,
     ) -> Result<AccountSummary, GatewayError> {
-        Err(planned_err("identity::cmd_change_account_role"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(
+                self.backend
+                    .change_account_role(&operator, account_id, req.clone()),
+            )
+            .map_err(GatewayError::Problem)
     }
 
     fn disable_account(

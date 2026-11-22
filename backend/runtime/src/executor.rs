@@ -1,8 +1,8 @@
 use sqlx::Row;
 use student_management_contracts::{
-    AccountSession, AccountSummary, BindPersonProfileRequest, CreateHomeroomRequest,
-    EnrollStudentRequest, HomeroomSummary, OperatorPrincipal, ProblemDetails,
-    ProvisionAccountRequest, SignInRequest, StudentSummary,
+    AccountSession, AccountSummary, BindPersonProfileRequest, ChangeAccountRoleRequest,
+    CreateHomeroomRequest, EnrollStudentRequest, HomeroomSummary, OperatorPrincipal,
+    ProblemDetails, ProvisionAccountRequest, SignInRequest, StudentSummary,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
 
@@ -100,6 +100,21 @@ impl LocalBackend {
         req: BindPersonProfileRequest,
     ) -> Result<AccountSummary, ProblemDetails> {
         student_management_identity_features::cmd_bind_person_profile::handler::execute(
+            &self.state,
+            operator,
+            account_id,
+            req,
+        )
+        .await
+    }
+
+    pub async fn change_account_role(
+        &self,
+        operator: &OperatorPrincipal,
+        account_id: &str,
+        req: ChangeAccountRoleRequest,
+    ) -> Result<AccountSummary, ProblemDetails> {
+        student_management_identity_features::cmd_change_account_role::handler::execute(
             &self.state,
             operator,
             account_id,
