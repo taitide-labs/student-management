@@ -1,8 +1,17 @@
 [workspace]
 resolver = "3"
 members = [
-  "crates/contracts",
-  "crates/server",
+  "backend/primitives",
+  "backend/contracts",
+  "backend/infra",
+  "backend/contexts/identity/domain",
+  "backend/contexts/identity/features",
+  "backend/contexts/enrollment/domain",
+  "backend/contexts/enrollment/features",
+  "backend/contexts/grading/domain",
+  "backend/contexts/grading/features",
+  "backend/runtime",
+  "backend/api",
   "clients/gateway",
   "clients/cli",
   "clients/app",
@@ -16,7 +25,11 @@ license = "MIT"
 repository = "https://github.com/taitide-labs/student-management"
 
 [workspace.dependencies]
-clap = { version = "4.5", features = ["env"] }
+argon2 = "0.6"
+axum = "0.8"
+clap = { version = "4.6", features = ["env"] }
+inventory = "0.3"
+jiff = "1.0"
 nsh-base = "0.6.1"
 nsh-core = "0.6.1"
 nsh-platform-linux = { version = "0.6.1", default-features = false, features = ["shader", "editor", "emoji-picker", "highlight", "math", "plot", "rich-editor", "term", "websocket", "updater", "svg", "net", "sound"] }
@@ -24,10 +37,19 @@ nsh-platform-macos = { version = "0.6.1", default-features = false, features = [
 nsh-platform-windows = { version = "0.6.1", default-features = false, features = ["shader", "editor", "emoji-picker", "highlight", "math", "plot", "rich-editor", "term", "websocket", "updater", "svg", "net"] }
 nsh-engine = { version = "0.6.1", default-features = false }
 nsh-testing = { version = "0.6.1", default-features = false }
-rust_decimal = { version = "1.37", features = ["serde-with-str"] }
+parking_lot = "0.13"
+proptest = "1.12"
+rstest = "0.28"
+rust_decimal = { version = "1.43", features = ["serde-with-str"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sqlx = { version = "0.9", features = ["runtime-tokio", "sqlite", "migrate", "macros"] }
 thiserror = "2.0"
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "sync", "time", "net", "fs"] }
+tower = "0.5"
+tower-http = { version = "0.7", features = ["cors", "trace"] }
+utoipa = { version = "6.0", features = ["axum_extras", "decimal"] }
+uuid = { version = "1.29", features = ["v4"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -1,16 +1,5 @@
-use serde::{Deserialize, Serialize};
+use student_management_contracts::ProblemDetails;
 use thiserror::Error;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Error)]
-#[error("{title} ({status}): {detail}")]
-pub struct ProblemDetails {
-    #[serde(rename = "type")]
-    pub problem_type: String,
-    pub title: String,
-    pub status: u16,
-    pub detail: String,
-    pub code: String,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum GatewayError {

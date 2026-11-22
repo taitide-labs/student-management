@@ -3,7 +3,8 @@ language: rust
 severity: error
 files:
   - "src/**/*.rs"
-  - "crates/**/*.rs"
+  - "backend/**/*.rs"
+  - "clients/**/*.rs"
 ignores:
   - "**/tests.rs"
   - "**/tests/**/*.rs"

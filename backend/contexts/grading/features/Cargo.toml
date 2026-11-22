@@ -1,0 +1,26 @@
+[package]
+name = "student-management-grading-features"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "acceptance"
+path = "tests/acceptance.rs"
+
+[dependencies]
+axum.workspace = true
+inventory.workspace = true
+serde.workspace = true
+sqlx.workspace = true
+student-management-contracts = { path = "../../../contracts", features = ["openapi"] }
+student-management-infra = { path = "../../../infra" }
+utoipa.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

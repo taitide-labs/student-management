@@ -49,3 +49,11 @@ run = 'PATH="/opt/homebrew/opt/llvm/bin:/usr/local/opt/llvm/bin:$PATH" nsh run c
 [tasks.sms]
 description = "Run sms CLI client (pass args after --)"
 run = "cargo run --quiet --bin sms --"
+
+[tasks.api]
+description = "Run backend HTTP API server"
+run = "cargo run --quiet -p student-management-api"
+
+[tasks.openapi]
+description = "Export OpenAPI schema to contracts/openapi.json"
+run = "cargo run --quiet -p student-management-api -- --export-openapi contracts/openapi.json"

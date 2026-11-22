@@ -10,7 +10,7 @@ publish = false
 workspace = true
 
 [features]
-default = ["mock", "remote"]
+default = []
 mock = []
 remote = []
 local = []
@@ -19,4 +19,5 @@ local = []
 rust_decimal.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+student-management-contracts = { path = "../../backend/contracts" }
 thiserror.workspace = true

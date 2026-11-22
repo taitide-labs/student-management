@@ -1,0 +1,27 @@
+[package]
+name = "student-management-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+axum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+student-management-contracts = { path = "../contracts", features = ["openapi"] }
+student-management-enrollment-features = { path = "../contexts/enrollment/features" }
+student-management-grading-features = { path = "../contexts/grading/features" }
+student-management-identity-features = { path = "../contexts/identity/features" }
+student-management-infra = { path = "../infra" }
+student-management-runtime = { path = "../runtime" }
+tokio.workspace = true
+tower-http.workspace = true
+utoipa.workspace = true
+
+[dev-dependencies]
+tower.workspace = true

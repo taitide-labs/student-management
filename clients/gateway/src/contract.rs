@@ -1,15 +1,14 @@
 mod error;
 mod gateway;
-mod types;
 
-pub use error::{GatewayError, ProblemDetails};
-pub use gateway::{Gateway, GatewayClient, StudentDetailPayload};
-pub use types::{
+pub use error::GatewayError;
+pub use gateway::{Gateway, GatewayClient};
+pub use student_management_contracts::{
     AccountSession, AccountStatus, AccountSummary, AmendGradeRequest, AssignTeachingRequest,
     BindPersonProfileRequest, ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest,
     CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, EnrollmentChangeRecord,
     EnrollmentStatus, GradeAmendmentRecord, GradeEntrySummary, GradeStatus, HomeroomSummary,
-    ProvisionAccountRequest, PublishGradesRequest, ReverseEnrollmentRequest, Role,
-    SaveDraftGradeRequest, SignInRequest, StudentSummary, TeachingSummary, TransferHomeroomRequest,
-    TransitionStudentRequest, UpdateHomeroomCapacityRequest,
+    ProblemDetails, ProvisionAccountRequest, PublishGradesRequest, ReverseEnrollmentRequest, Role,
+    SaveDraftGradeRequest, SignInRequest, StudentDetailPayload, StudentSummary, TeachingSummary,
+    TransferHomeroomRequest, TransitionStudentRequest, UpdateHomeroomCapacityRequest,
 };

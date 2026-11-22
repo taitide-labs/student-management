@@ -1,22 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 
-use serde::{Deserialize, Serialize};
-
-use crate::contract::{
+use student_management_contracts::{
     AccountSession, AccountSummary, AmendGradeRequest, AssignTeachingRequest,
     BindPersonProfileRequest, ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest,
-    CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, EnrollmentChangeRecord,
-    EnrollmentStatus, GatewayError, GradeAmendmentRecord, GradeEntrySummary, HomeroomSummary,
-    ProvisionAccountRequest, PublishGradesRequest, ReverseEnrollmentRequest, Role,
-    SaveDraftGradeRequest, SignInRequest, StudentSummary, TeachingSummary, TransferHomeroomRequest,
+    CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus,
+    GradeAmendmentRecord, GradeEntrySummary, HomeroomSummary, ProvisionAccountRequest,
+    PublishGradesRequest, ReverseEnrollmentRequest, Role, SaveDraftGradeRequest, SignInRequest,
+    StudentDetailPayload, StudentSummary, TeachingSummary, TransferHomeroomRequest,
     TransitionStudentRequest, UpdateHomeroomCapacityRequest,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StudentDetailPayload {
-    pub student: StudentSummary,
-    pub changes: Vec<EnrollmentChangeRecord>,
-}
+use crate::contract::GatewayError;
 
 pub trait Gateway {
     fn sign_in(&self, req: &SignInRequest) -> Result<AccountSession, GatewayError>;

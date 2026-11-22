@@ -2,9 +2,9 @@
 
 ## 限界上下文
 
-- [学籍与行政班](./crates/contexts/enrollment/context.md) — 核心域，负责行政班管理、学生入学建档与分班，以及学籍变更与异动追溯
-- [课程与成绩](./crates/contexts/grading/context.md) — 核心域，负责课程设置、教学任务分派，以及成绩录入、发布与合规修订
-- [身份与权限](./crates/contexts/identity/context.md) — 通用域，负责系统账号、访问凭证、预置角色以及账号与人员身份的关联管理
+- [学籍与行政班](./backend/contexts/enrollment/context.md) — 核心域，负责行政班管理、学生入学建档与分班，以及学籍变更与异动追溯
+- [课程与成绩](./backend/contexts/grading/context.md) — 核心域，负责课程设置、教学任务分派，以及成绩录入、发布与合规修订
+- [身份与权限](./backend/contexts/identity/context.md) — 通用域，负责系统账号、访问凭证、预置角色以及账号与人员身份的关联管理
 
 ## 关系模式
 
