@@ -317,10 +317,13 @@ impl Gateway for LocalGatewayHandle {
 
     fn list_grade_amendments(
         &self,
-        _session: &AccountSession,
-        _grade_id: Option<&str>,
+        session: &AccountSession,
+        grade_id: Option<&str>,
     ) -> Result<Vec<GradeAmendmentRecord>, GatewayError> {
-        Err(planned_err("grading::qry_grade_amendments"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.list_grade_amendments(&operator, grade_id))
+            .map_err(GatewayError::Problem)
     }
 
     fn list_accounts(&self, session: &AccountSession) -> Result<Vec<AccountSummary>, GatewayError> {

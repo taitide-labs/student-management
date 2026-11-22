@@ -3,9 +3,9 @@ use student_management_contracts::{
     AccountSession, AccountSummary, AmendGradeRequest, AssignTeachingRequest,
     BindPersonProfileRequest, ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest,
     CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus,
-    GradeEntrySummary, HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest,
-    PublishGradesRequest, ReverseEnrollmentRequest, SaveDraftGradeRequest, SignInRequest,
-    StudentDetailPayload, StudentSummary, TeachingSummary, TransferHomeroomRequest,
+    GradeAmendmentRecord, GradeEntrySummary, HomeroomSummary, OperatorPrincipal, ProblemDetails,
+    ProvisionAccountRequest, PublishGradesRequest, ReverseEnrollmentRequest, SaveDraftGradeRequest,
+    SignInRequest, StudentDetailPayload, StudentSummary, TeachingSummary, TransferHomeroomRequest,
     TransitionStudentRequest, UpdateHomeroomCapacityRequest,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
@@ -397,6 +397,19 @@ impl LocalBackend {
             operator,
             grade_id,
             req,
+        )
+        .await
+    }
+
+    pub async fn list_grade_amendments(
+        &self,
+        operator: &OperatorPrincipal,
+        grade_id: Option<&str>,
+    ) -> Result<Vec<GradeAmendmentRecord>, ProblemDetails> {
+        student_management_grading_features::qry_grade_amendments::handler::execute(
+            &self.state,
+            operator,
+            grade_id,
         )
         .await
     }

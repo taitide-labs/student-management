@@ -2,21 +2,23 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use student_management_infra::registered_slices;
+use student_management_infra::{SliceStatus, registered_slices};
 use student_management_runtime::build_app_state;
 use tower::ServiceExt;
 
-use crate::{build_router, build_router_with_planned};
+use crate::build_router;
 
 #[tokio::test]
 async fn api_registers_all_27_slices_and_hides_planned_in_production() {
     let state = build_app_state("sqlite::memory:")
         .await
         .expect("build runtime state");
-    assert_eq!(registered_slices().len(), 27);
+    let app = build_router(state);
+    let slices = registered_slices();
+    assert_eq!(slices.len(), 27);
+    assert!(slices.iter().all(|s| s.status == SliceStatus::Active));
 
-    let prod = build_router(state.clone());
-    let health_resp = prod
+    let health_resp = app
         .clone()
         .oneshot(
             Request::builder()
@@ -28,7 +30,8 @@ async fn api_registers_all_27_slices_and_hides_planned_in_production() {
         .expect("health response");
     assert_eq!(health_resp.status(), StatusCode::OK);
 
-    let hidden_resp = prod
+    let amendments_resp = app
+        .clone()
         .oneshot(
             Request::builder()
                 .uri("/api/v1/grade-amendments")
@@ -36,18 +39,17 @@ async fn api_registers_all_27_slices_and_hides_planned_in_production() {
                 .expect("request"),
         )
         .await
-        .expect("hidden planned slice");
-    assert_eq!(hidden_resp.status(), StatusCode::NOT_FOUND);
+        .expect("active slice auth check");
+    assert_eq!(amendments_resp.status(), StatusCode::UNAUTHORIZED);
 
-    let dev = build_router_with_planned(state, true);
-    let planned_resp = dev
+    let missing_resp = app
         .oneshot(
             Request::builder()
-                .uri("/api/v1/grade-amendments")
+                .uri("/api/v1/nonexistent")
                 .body(Body::empty())
                 .expect("request"),
         )
         .await
-        .expect("planned response");
-    assert_eq!(planned_resp.status(), StatusCode::NOT_IMPLEMENTED);
+        .expect("unknown route check");
+    assert_eq!(missing_resp.status(), StatusCode::NOT_FOUND);
 }
