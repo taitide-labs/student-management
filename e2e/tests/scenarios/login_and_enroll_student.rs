@@ -1,6 +1,7 @@
 use nsh_engine::{EngineConfig, Points, Root, Size};
 use nsh_testing::Headless;
 use student_management_contracts::CreateHomeroomRequest;
+use student_management_runtime::enrollment;
 
 use super::server;
 
@@ -31,19 +32,18 @@ fn run_enroll_ui_journey(base_url: &str) -> Result<(), String> {
 async fn app_login_and_enroll_student_persists_through_real_api_e2e() {
     let srv = server::start_live_server().await;
     let admin = srv.admin_principal();
-    let _hr = srv
-        .backend
-        .create_homeroom(
-            &admin,
-            CreateHomeroomRequest {
-                name: "高一 1 班".to_owned(),
-                grade_year: 2026,
-                capacity: Some(30),
-                idempotency_key: "e2e-hr-1".to_owned(),
-            },
-        )
-        .await
-        .expect("seed homeroom");
+    let _hr = enrollment::cmd_create_homeroom::handler::execute(
+        &srv.state,
+        &admin,
+        CreateHomeroomRequest {
+            name: "高一 1 班".to_owned(),
+            grade_year: 2026,
+            capacity: Some(30),
+            idempotency_key: "e2e-hr-1".to_owned(),
+        },
+    )
+    .await
+    .expect("seed homeroom");
 
     let base_url = srv.base_url.clone();
     tokio::task::spawn_blocking(move || run_enroll_ui_journey(&base_url))
@@ -51,11 +51,10 @@ async fn app_login_and_enroll_student_persists_through_real_api_e2e() {
         .expect("join headless ui task")
         .expect("run enroll ui journey");
 
-    let students = srv
-        .backend
-        .list_students(&admin, "端到端新生", None)
-        .await
-        .expect("query persisted student");
+    let students =
+        enrollment::qry_students::handler::execute(&srv.state, &admin, "端到端新生", None)
+            .await
+            .expect("query persisted student");
     assert_eq!(students.len(), 1);
     assert_eq!(
         students.first().map(|s| s.full_name.as_str()),

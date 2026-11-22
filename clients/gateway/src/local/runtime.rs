@@ -9,31 +9,29 @@ use student_management_contracts::{
     SaveDraftGradeRequest, SignInRequest, StudentDetailPayload, StudentSummary, TeachingSummary,
     TransferHomeroomRequest, TransitionStudentRequest, UpdateHomeroomCapacityRequest,
 };
-use student_management_runtime::LocalBackend;
+use student_management_runtime::{
+    AppState, dispatch_outbox, enrollment, ensure_bootstrap_admin, grading, identity,
+    open_app_state, resolve_session,
+};
 use tokio::runtime::Runtime;
 
 use crate::contract::{Gateway, GatewayError};
 
 pub struct LocalGatewayHandle {
     rt: Arc<Runtime>,
-    backend: LocalBackend,
+    state: AppState,
 }
 
 impl LocalGatewayHandle {
     pub fn open(database_url: &str) -> Result<Self, GatewayError> {
         let rt = Runtime::new().map_err(|err| GatewayError::Transport(err.to_string()))?;
-        let backend = rt
-            .block_on(LocalBackend::open(database_url))
+        let state = rt
+            .block_on(open_app_state(database_url))
             .map_err(GatewayError::Problem)?;
         Ok(Self {
             rt: Arc::new(rt),
-            backend,
+            state,
         })
-    }
-
-    #[must_use]
-    pub const fn backend(&self) -> &LocalBackend {
-        &self.backend
     }
 
     pub fn ensure_bootstrap_admin(
@@ -43,16 +41,18 @@ impl LocalGatewayHandle {
         password: &str,
     ) -> Result<(), GatewayError> {
         self.rt
-            .block_on(
-                self.backend
-                    .ensure_bootstrap_admin(username, display_name, password),
-            )
+            .block_on(ensure_bootstrap_admin(
+                &self.state,
+                username,
+                display_name,
+                password,
+            ))
             .map_err(GatewayError::Problem)
     }
 
     pub fn resolve_session(&self, token: &str) -> Result<AccountSession, GatewayError> {
         self.rt
-            .block_on(self.backend.resolve_session(token))
+            .block_on(resolve_session(&self.state, token))
             .map_err(GatewayError::Problem)
     }
 }
@@ -66,24 +66,25 @@ fn principal_from_session(session: &AccountSession) -> OperatorPrincipal {
     }
 }
 
-fn planned_err(slice: &str) -> GatewayError {
-    GatewayError::Problem(ProblemDetails::not_implemented(slice))
-}
-
 impl Gateway for LocalGatewayHandle {
     fn sign_in(&self, req: &SignInRequest) -> Result<AccountSession, GatewayError> {
         self.rt
-            .block_on(self.backend.sign_in(req.clone()))
+            .block_on(identity::cmd_sign_in::handler::execute(
+                &self.state,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
     fn switch_role(&self, _role: Role) -> Result<AccountSession, GatewayError> {
-        Err(planned_err("identity::switch_role"))
+        Err(GatewayError::Problem(ProblemDetails::not_implemented(
+            "identity::switch_role",
+        )))
     }
 
     fn list_homerooms(&self) -> Result<Vec<HomeroomSummary>, GatewayError> {
         self.rt
-            .block_on(self.backend.list_homerooms())
+            .block_on(enrollment::qry_homerooms::handler::execute(&self.state))
             .map_err(GatewayError::Problem)
     }
 
@@ -94,7 +95,11 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<HomeroomSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.create_homeroom(&operator, req.clone()))
+            .block_on(enrollment::cmd_create_homeroom::handler::execute(
+                &self.state,
+                &operator,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -106,10 +111,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<HomeroomSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .update_homeroom_capacity(&operator, homeroom_id, req.clone()),
-            )
+            .block_on(enrollment::cmd_update_homeroom_capacity::handler::execute(
+                &self.state,
+                &operator,
+                homeroom_id,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -121,7 +128,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<Vec<StudentSummary>, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.list_students(&operator, query, status_filter))
+            .block_on(enrollment::qry_students::handler::execute(
+                &self.state,
+                &operator,
+                query,
+                status_filter,
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -132,7 +144,11 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<StudentDetailPayload, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.student_detail(&operator, student_no))
+            .block_on(enrollment::qry_student_detail::handler::execute(
+                &self.state,
+                &operator,
+                student_no,
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -143,7 +159,11 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<StudentSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.enroll_student(&operator, req.clone()))
+            .block_on(enrollment::cmd_enroll_student::handler::execute(
+                &self.state,
+                &operator,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -155,10 +175,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<StudentSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .transfer_homeroom(&operator, student_no, req.clone()),
-            )
+            .block_on(enrollment::cmd_transfer_homeroom::handler::execute(
+                &self.state,
+                &operator,
+                student_no,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -170,10 +192,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<StudentSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .suspend_student(&operator, student_no, req.clone()),
-            )
+            .block_on(enrollment::cmd_suspend_student::handler::execute(
+                &self.state,
+                &operator,
+                student_no,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -185,10 +209,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<StudentSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .resume_student(&operator, student_no, req.clone()),
-            )
+            .block_on(enrollment::cmd_resume_student::handler::execute(
+                &self.state,
+                &operator,
+                student_no,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -200,10 +226,17 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<StudentSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .withdraw_student(&operator, student_no, req.clone()),
-            )
+            .block_on(async {
+                let summary = enrollment::cmd_withdraw_student::handler::execute(
+                    &self.state,
+                    &operator,
+                    student_no,
+                    req.clone(),
+                )
+                .await?;
+                let _ = dispatch_outbox(&self.state).await?;
+                Ok(summary)
+            })
             .map_err(GatewayError::Problem)
     }
 
@@ -215,10 +248,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<StudentSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .graduate_student(&operator, student_no, req.clone()),
-            )
+            .block_on(enrollment::cmd_graduate_student::handler::execute(
+                &self.state,
+                &operator,
+                student_no,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -230,17 +265,22 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<StudentSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .reverse_enrollment(&operator, student_no, req.clone()),
-            )
+            .block_on(enrollment::cmd_reverse_enrollment::handler::execute(
+                &self.state,
+                &operator,
+                student_no,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
     fn list_courses(&self, session: &AccountSession) -> Result<Vec<CourseSummary>, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.list_courses(&operator))
+            .block_on(grading::qry_courses::handler::execute(
+                &self.state,
+                &operator,
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -251,7 +291,11 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<CourseSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.create_course(&operator, req.clone()))
+            .block_on(grading::cmd_create_course::handler::execute(
+                &self.state,
+                &operator,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -261,7 +305,10 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<Vec<TeachingSummary>, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.list_teachings(&operator))
+            .block_on(grading::qry_teachings::handler::execute(
+                &self.state,
+                &operator,
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -272,7 +319,11 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<TeachingSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.assign_teaching(&operator, req.clone()))
+            .block_on(grading::cmd_assign_teaching::handler::execute(
+                &self.state,
+                &operator,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -283,7 +334,11 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<Vec<GradeEntrySummary>, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.list_grades(&operator, student_no))
+            .block_on(grading::qry_grades::handler::execute(
+                &self.state,
+                &operator,
+                student_no,
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -294,7 +349,11 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<GradeEntrySummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.save_draft_grade(&operator, req.clone()))
+            .block_on(grading::cmd_save_draft_grade::handler::execute(
+                &self.state,
+                &operator,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -305,7 +364,11 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<Vec<GradeEntrySummary>, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.publish_grades(&operator, req.clone()))
+            .block_on(grading::cmd_publish_grades::handler::execute(
+                &self.state,
+                &operator,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -317,7 +380,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<GradeEntrySummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.amend_grade(&operator, grade_id, req.clone()))
+            .block_on(grading::cmd_amend_grade::handler::execute(
+                &self.state,
+                &operator,
+                grade_id,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -328,14 +396,21 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<Vec<GradeAmendmentRecord>, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.list_grade_amendments(&operator, grade_id))
+            .block_on(grading::qry_grade_amendments::handler::execute(
+                &self.state,
+                &operator,
+                grade_id,
+            ))
             .map_err(GatewayError::Problem)
     }
 
     fn list_accounts(&self, session: &AccountSession) -> Result<Vec<AccountSummary>, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.list_accounts(&operator))
+            .block_on(identity::qry_accounts::handler::execute(
+                &self.state,
+                &operator,
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -346,7 +421,11 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<AccountSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(self.backend.provision_account(&operator, req.clone()))
+            .block_on(identity::cmd_provision_account::handler::execute(
+                &self.state,
+                &operator,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -358,10 +437,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<AccountSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .bind_person_profile(&operator, account_id, req.clone()),
-            )
+            .block_on(identity::cmd_bind_person_profile::handler::execute(
+                &self.state,
+                &operator,
+                account_id,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -373,10 +454,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<AccountSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .change_account_role(&operator, account_id, req.clone()),
-            )
+            .block_on(identity::cmd_change_account_role::handler::execute(
+                &self.state,
+                &operator,
+                account_id,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 
@@ -388,10 +471,12 @@ impl Gateway for LocalGatewayHandle {
     ) -> Result<AccountSummary, GatewayError> {
         let operator = principal_from_session(session);
         self.rt
-            .block_on(
-                self.backend
-                    .disable_account(&operator, account_id, req.clone()),
-            )
+            .block_on(identity::cmd_disable_account::handler::execute(
+                &self.state,
+                &operator,
+                account_id,
+                req.clone(),
+            ))
             .map_err(GatewayError::Problem)
     }
 }

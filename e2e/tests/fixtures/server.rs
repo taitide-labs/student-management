@@ -1,11 +1,11 @@
 use student_management_api::build_router;
 use student_management_contracts::{AccountSession, OperatorPrincipal, SignInRequest};
-use student_management_runtime::{LocalBackend, build_app_state};
+use student_management_runtime::{AppState, build_app_state, ensure_bootstrap_admin, identity};
 use tokio::{net::TcpListener, task::JoinHandle};
 
 pub struct LiveApiServer {
     pub base_url: String,
-    pub backend: LocalBackend,
+    pub state: AppState,
     pub admin_session: AccountSession,
     handle: JoinHandle<()>,
 }
@@ -32,20 +32,20 @@ pub async fn start_live_server() -> LiveApiServer {
     let state = build_app_state("sqlite::memory:")
         .await
         .expect("build runtime state");
-    let backend = LocalBackend::new(state.clone());
-    backend
-        .ensure_bootstrap_admin("admin", "系统管理员", "demo")
+    ensure_bootstrap_admin(&state, "admin", "系统管理员", "demo")
         .await
         .expect("bootstrap admin");
-    let admin_session = backend
-        .sign_in(SignInRequest {
+    let admin_session = identity::cmd_sign_in::handler::execute(
+        &state,
+        SignInRequest {
             username: "admin".to_owned(),
             password: "demo".to_owned(),
-        })
-        .await
-        .expect("sign in bootstrap admin");
+        },
+    )
+    .await
+    .expect("sign in bootstrap admin");
 
-    let router = build_router(state);
+    let router = build_router(state.clone());
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind ephemeral port");
@@ -56,7 +56,7 @@ pub async fn start_live_server() -> LiveApiServer {
 
     LiveApiServer {
         base_url: format!("http://{addr}"),
-        backend,
+        state,
         admin_session,
         handle,
     }
