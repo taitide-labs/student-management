@@ -1,0 +1,12 @@
+id: no-client-pages-import-app
+language: rust
+severity: error
+message: "客户端页面层禁止反向导入 app 组合根与导航状态，页面跳转必须通过回调或领域动作上抛"
+files:
+  - "clients/app/src/pages/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  kind: scoped_identifier
+  regex: "^crate::app(::|$)"

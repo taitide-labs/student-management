@@ -18,6 +18,34 @@ sccache = "0.19.0"
 description = "Auto-fix documentation formatting, typography, and code formatting"
 run = "hk fix --all --silent -n"
 
+[tasks.lock]
+description = "Update Cargo.lock for workspace dependency changes"
+run = "cargo generate-lockfile"
+
+[tasks.client]
+description = "Run headless client tests"
+run = "nsh test clients/app"
+
 [tasks.check]
-description = "Run all documentation, formatting, ast-grep, clippy, test, and dependency audit checks"
-run = ["hk check --all --silent -n", "cargo deny check"]
+description = "Run all documentation, formatting, ast-grep, clippy, test, dependency audit, and client checks"
+run = ["hk check --all --silent -n", "cargo deny check", "nsh test clients/app"]
+
+[tasks.app]
+description = "Run macOS desktop client"
+run = "nsh run clients/app"
+
+[tasks.tui]
+description = "Run TUI client in current terminal"
+run = "nsh run clients/app --target tui"
+
+[tasks.mobile]
+description = "Run mobile shell via Mac Catalyst (requires Xcode and rustup target aarch64-apple-ios-macabi)"
+run = "nsh run clients/app --target catalyst"
+
+[tasks.web]
+description = "Run Web client in browser"
+run = 'PATH="/opt/homebrew/opt/llvm/bin:/usr/local/opt/llvm/bin:$PATH" nsh run clients/app --target web'
+
+[tasks.sms]
+description = "Run sms CLI client (pass args after --)"
+run = "cargo run --quiet --bin sms --"

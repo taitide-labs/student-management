@@ -1,0 +1,17 @@
+id: no-raw-style-outside-ui
+language: rust
+severity: error
+message: "禁止在 app、features、pages 层散落颜色、圆角、边框或阴影覆写；必须先在 clients/app/src/ui/ 封装语义组件或表面原语"
+files:
+  - "clients/app/src/app/**/*.rs"
+  - "clients/app/src/features/**/*.rs"
+  - "clients/app/src/pages/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: "^nsh_core::color(::|$)"
+    - kind: field_identifier
+      regex: "^(rounded|rounded_sm|rounded_md|rounded_lg|rounded_xl|rounded_2xl|rounded_full|border_1|border_2|border_t_1|border_b_1|border_l_1|border_r_1|border_color|bg|text_color|shadow_sm|shadow_md|shadow_lg)$"

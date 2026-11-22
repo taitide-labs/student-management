@@ -1,0 +1,12 @@
+id: no-client-slice-cross-or-upward-imports
+language: rust
+severity: error
+message: "客户端功能切片禁止跨切片互引或反向导入 pages/app，跨切片协调必须上收到页面或组合根"
+files:
+  - "clients/app/src/features/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  kind: scoped_identifier
+  regex: "^crate::(app|pages|features)(::|$)"

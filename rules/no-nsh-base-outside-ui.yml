@@ -1,0 +1,15 @@
+id: no-nsh-base-outside-ui
+language: rust
+severity: error
+message: "nsh_base 底层基础组件与主题 Token 仅允许在 clients/app/src/ui/ 内封装使用，禁止在 app、pages、features 层直接导入"
+files:
+  - "clients/app/src/**/*.rs"
+ignores:
+  - "clients/app/src/ui.rs"
+  - "clients/app/src/ui/**/*.rs"
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: "^nsh_base(::|$)"
+    - kind: identifier
+      regex: "^nsh_base$"

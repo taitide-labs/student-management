@@ -1,0 +1,25 @@
+[package]
+name = "student-management-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[[bin]]
+name = "sms"
+path = "src/main.rs"
+
+[[test]]
+name = "cli_acceptance"
+path = "tests/cli_acceptance/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+clap.workspace = true
+rust_decimal.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+student-management-gateway = { path = "../gateway" }

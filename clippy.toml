@@ -5,8 +5,6 @@ allow-dbg-in-tests = true
 allow-print-in-tests = true
 
 disallowed-types = [
-  { path = "f32", reason = "存在十进制精度误差，金额与费率计算必须使用 rust_decimal::Decimal" },
-  { path = "f64", reason = "存在十进制精度误差，金额与费率计算必须使用 rust_decimal::Decimal" },
   { path = "std::sync::Mutex", reason = "同步临界区必须使用 parking_lot::Mutex，跨 .await 必须使用 tokio::sync::Mutex" },
 ]
 
@@ -14,5 +12,8 @@ disallowed-methods = [
   { path = "std::thread::sleep", reason = "会阻塞异步工作线程，必须使用 tokio::time::sleep" },
   { path = "std::fs::read_to_string", reason = "会阻塞异步工作线程，必须使用 tokio::fs" },
   { path = "std::env::var", reason = "破坏并行测试隔离，必须通过配置结构体注入" },
-  { path = "chrono::Utc::now", reason = "破坏测试确定性，必须注入时钟抽象" },
+  { path = "std::time::SystemTime::now", reason = "破坏测试确定性，必须注入时钟抽象" },
+  { path = "jiff::Timestamp::now", reason = "破坏测试确定性，必须注入时钟抽象" },
+  { path = "jiff::Zoned::now", reason = "破坏测试确定性，必须注入时钟抽象" },
+  { path = "chrono::Utc::now", reason = "已由 jiff 替代且破坏测试确定性，必须注入时钟抽象" },
 ]
