@@ -2,10 +2,10 @@ use sqlx::Row;
 use student_management_contracts::{
     AccountSession, AccountSummary, AssignTeachingRequest, BindPersonProfileRequest,
     ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest, CreateHomeroomRequest,
-    DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus, HomeroomSummary,
-    OperatorPrincipal, ProblemDetails, ProvisionAccountRequest, ReverseEnrollmentRequest,
-    SignInRequest, StudentDetailPayload, StudentSummary, TeachingSummary, TransferHomeroomRequest,
-    TransitionStudentRequest, UpdateHomeroomCapacityRequest,
+    DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus, GradeEntrySummary,
+    HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest,
+    ReverseEnrollmentRequest, SignInRequest, StudentDetailPayload, StudentSummary, TeachingSummary,
+    TransferHomeroomRequest, TransitionStudentRequest, UpdateHomeroomCapacityRequest,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
 
@@ -342,6 +342,19 @@ impl LocalBackend {
             &self.state,
             operator,
             req,
+        )
+        .await
+    }
+
+    pub async fn list_grades(
+        &self,
+        operator: &OperatorPrincipal,
+        student_no: Option<&str>,
+    ) -> Result<Vec<GradeEntrySummary>, ProblemDetails> {
+        student_management_grading_features::qry_grades::handler::execute(
+            &self.state,
+            operator,
+            student_no,
         )
         .await
     }

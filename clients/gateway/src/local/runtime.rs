@@ -272,10 +272,13 @@ impl Gateway for LocalGatewayHandle {
 
     fn list_grades(
         &self,
-        _session: &AccountSession,
-        _student_no: Option<&str>,
+        session: &AccountSession,
+        student_no: Option<&str>,
     ) -> Result<Vec<GradeEntrySummary>, GatewayError> {
-        Err(planned_err("grading::qry_grades"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.list_grades(&operator, student_no))
+            .map_err(GatewayError::Problem)
     }
 
     fn save_draft_grade(
