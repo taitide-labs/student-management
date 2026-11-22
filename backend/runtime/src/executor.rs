@@ -1,10 +1,11 @@
 use sqlx::Row;
 use student_management_contracts::{
     AccountSession, AccountSummary, BindPersonProfileRequest, ChangeAccountRoleRequest,
-    CourseSummary, CreateHomeroomRequest, DisableAccountRequest, EnrollStudentRequest,
-    EnrollmentStatus, HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest,
-    ReverseEnrollmentRequest, SignInRequest, StudentDetailPayload, StudentSummary,
-    TransferHomeroomRequest, TransitionStudentRequest, UpdateHomeroomCapacityRequest,
+    CourseSummary, CreateCourseRequest, CreateHomeroomRequest, DisableAccountRequest,
+    EnrollStudentRequest, EnrollmentStatus, HomeroomSummary, OperatorPrincipal, ProblemDetails,
+    ProvisionAccountRequest, ReverseEnrollmentRequest, SignInRequest, StudentDetailPayload,
+    StudentSummary, TransferHomeroomRequest, TransitionStudentRequest,
+    UpdateHomeroomCapacityRequest,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
 
@@ -309,5 +310,18 @@ impl LocalBackend {
     ) -> Result<Vec<CourseSummary>, ProblemDetails> {
         student_management_grading_features::qry_courses::handler::execute(&self.state, operator)
             .await
+    }
+
+    pub async fn create_course(
+        &self,
+        operator: &OperatorPrincipal,
+        req: CreateCourseRequest,
+    ) -> Result<CourseSummary, ProblemDetails> {
+        student_management_grading_features::cmd_create_course::handler::execute(
+            &self.state,
+            operator,
+            req,
+        )
+        .await
     }
 }

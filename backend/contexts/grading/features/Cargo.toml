@@ -31,7 +31,9 @@ rust_decimal.workspace = true
 serde = { workspace = true, optional = true }
 sqlx.workspace = true
 student-management-contracts = { path = "../../../contracts" }
+student-management-grading-domain = { path = "../domain" }
 student-management-infra = { path = "../../../infra" }
+student-management-primitives = { path = "../../../primitives" }
 utoipa = { workspace = true, optional = true }
 
 [dev-dependencies]

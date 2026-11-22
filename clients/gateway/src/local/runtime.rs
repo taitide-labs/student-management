@@ -240,10 +240,13 @@ impl Gateway for LocalGatewayHandle {
 
     fn create_course(
         &mut self,
-        _session: &AccountSession,
-        _req: &CreateCourseRequest,
+        session: &AccountSession,
+        req: &CreateCourseRequest,
     ) -> Result<CourseSummary, GatewayError> {
-        Err(planned_err("grading::cmd_create_course"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.create_course(&operator, req.clone()))
+            .map_err(GatewayError::Problem)
     }
 
     fn list_teachings(

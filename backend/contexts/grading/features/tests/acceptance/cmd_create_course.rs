@@ -6,7 +6,6 @@ use student_management_contracts::{CourseSummary, CreateCourseRequest};
 use super::support::{FakeEnrollmentPort, router, seed_operator, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn create_course_succeeds_and_rejects_pass_above_max(pool: SqlitePool) {
     seed_operator(&pool, "acc-admin", "admin", "tok-admin").await;
     let app = router(
