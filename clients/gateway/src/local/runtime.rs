@@ -258,10 +258,13 @@ impl Gateway for LocalGatewayHandle {
 
     fn provision_account(
         &mut self,
-        _session: &AccountSession,
-        _req: &ProvisionAccountRequest,
+        session: &AccountSession,
+        req: &ProvisionAccountRequest,
     ) -> Result<AccountSummary, GatewayError> {
-        Err(planned_err("identity::cmd_provision_account"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.provision_account(&operator, req.clone()))
+            .map_err(GatewayError::Problem)
     }
 
     fn bind_person_profile(

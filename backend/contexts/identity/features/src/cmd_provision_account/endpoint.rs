@@ -1,6 +1,15 @@
-use axum::{Json, Router, http::StatusCode, routing::post};
+use axum::{
+    Json, Router,
+    extract::State,
+    http::{HeaderMap, StatusCode, header::AUTHORIZATION},
+    routing::post,
+};
 use student_management_contracts::{AccountSummary, ProblemDetails, ProvisionAccountRequest};
-use student_management_infra::{HttpMethod, SliceDescriptor, SliceStatus, state::AppState};
+use student_management_infra::{
+    AppState, HttpMethod, SliceDescriptor, SliceStatus, authenticate_bearer,
+};
+
+use super::handler;
 
 #[utoipa::path(
     post,
@@ -14,14 +23,23 @@ use student_management_infra::{HttpMethod, SliceDescriptor, SliceStatus, state::
     )
 )]
 pub async fn provision_account(
-    Json(_req): Json<ProvisionAccountRequest>,
-) -> (StatusCode, Json<ProblemDetails>) {
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(ProblemDetails::not_implemented(
-            "identity::cmd_provision_account",
-        )),
-    )
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<ProvisionAccountRequest>,
+) -> Result<(StatusCode, Json<AccountSummary>), (StatusCode, Json<ProblemDetails>)> {
+    let auth_header = headers.get(AUTHORIZATION).and_then(|v| v.to_str().ok());
+    let operator = authenticate_bearer(&state.pool, auth_header)
+        .await
+        .map_err(problem_response)?;
+    let summary = handler::execute(&state, &operator, req)
+        .await
+        .map_err(problem_response)?;
+    Ok((StatusCode::CREATED, Json(summary)))
+}
+
+fn problem_response(problem: ProblemDetails) -> (StatusCode, Json<ProblemDetails>) {
+    let status = StatusCode::from_u16(problem.status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+    (status, Json(problem))
 }
 
 fn route() -> Router<AppState> {
@@ -33,6 +51,6 @@ inventory::submit!(SliceDescriptor {
     slice: "cmd_provision_account",
     method: HttpMethod::Post,
     path: "/api/v1/accounts",
-    status: SliceStatus::Planned,
+    status: SliceStatus::Active,
     route,
 });

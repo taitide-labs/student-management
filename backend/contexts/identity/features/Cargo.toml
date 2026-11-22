@@ -29,6 +29,7 @@ inventory.workspace = true
 serde.workspace = true
 sqlx.workspace = true
 student-management-contracts = { path = "../../../contracts" }
+student-management-identity-domain = { path = "../domain" }
 student-management-infra = { path = "../../../infra" }
 student-management-primitives = { path = "../../../primitives" }
 utoipa = { workspace = true, optional = true }

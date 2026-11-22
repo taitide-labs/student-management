@@ -4900,6 +4900,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "student-management-contracts",
+ "student-management-identity-domain",
  "student-management-infra",
  "student-management-primitives",
  "tokio",

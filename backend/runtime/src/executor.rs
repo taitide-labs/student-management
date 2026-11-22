@@ -1,7 +1,7 @@
 use sqlx::Row;
 use student_management_contracts::{
     AccountSession, AccountSummary, CreateHomeroomRequest, EnrollStudentRequest, HomeroomSummary,
-    OperatorPrincipal, ProblemDetails, SignInRequest, StudentSummary,
+    OperatorPrincipal, ProblemDetails, ProvisionAccountRequest, SignInRequest, StudentSummary,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
 
@@ -77,6 +77,19 @@ impl LocalBackend {
     ) -> Result<Vec<AccountSummary>, ProblemDetails> {
         student_management_identity_features::qry_accounts::handler::execute(&self.state, operator)
             .await
+    }
+
+    pub async fn provision_account(
+        &self,
+        operator: &OperatorPrincipal,
+        req: ProvisionAccountRequest,
+    ) -> Result<AccountSummary, ProblemDetails> {
+        student_management_identity_features::cmd_provision_account::handler::execute(
+            &self.state,
+            operator,
+            req,
+        )
+        .await
     }
 
     pub async fn create_homeroom(

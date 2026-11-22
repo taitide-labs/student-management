@@ -7,7 +7,6 @@ use student_management_infra::open_sqlite_pool;
 use super::support::{router, seed_account, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn admin_provisions_teacher_and_lists_via_qry_accounts(pool: SqlitePool) {
     seed_account(&pool, "acc-admin", "admin", "admin", "pw", "tok-admin").await;
     let app = router(pool);
@@ -49,7 +48,6 @@ async fn admin_provisions_teacher_and_lists_via_qry_accounts(pool: SqlitePool) {
 #[case("tok-teacher", Role::Teacher, None, StatusCode::FORBIDDEN)]
 #[case("tok-admin", Role::Teacher, Some("20261001"), StatusCode::BAD_REQUEST)]
 #[tokio::test]
-#[ignore = "wip"]
 async fn provision_account_rejects_unauthorized_caller_and_non_student_binding(
     #[case] token: &str,
     #[case] role: Role,
