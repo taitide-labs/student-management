@@ -10,7 +10,6 @@ use student_management_infra::open_sqlite_pool;
 use super::support::{router, seed_operator, send_json};
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn suspend_then_resume_transitions_student_between_active_and_suspended(pool: SqlitePool) {
     seed_operator(&pool, "acc-admin", "admin", "tok-admin").await;
     let app = router(pool);
