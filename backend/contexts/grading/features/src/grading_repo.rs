@@ -1,5 +1,5 @@
 use rust_decimal::Decimal;
-use sqlx::Row;
+use sqlx::{Row, SqliteConnection};
 use student_management_contracts::{GradeEntrySummary, GradeStatus, PortError, ProblemDetails};
 use student_management_infra::{AppState, InfraError, infra_error_to_problem};
 
@@ -32,6 +32,28 @@ pub async fn resolve_student_name(state: &AppState, student_no: &str) -> String 
         },
         None => student_no.to_owned(),
     }
+}
+
+pub async fn build_grade_summary(
+    conn: &mut SqliteConnection,
+    grade_id: &str,
+    student_name: String,
+) -> Result<GradeEntrySummary, ProblemDetails> {
+    let row = sqlx::query(
+        "SELECT ge.id, ge.teaching_id, c.code AS course_code, c.name AS course_name, \
+         ta.term, ge.student_no, ge.score, c.max_score, ge.status, ge.version \
+         FROM grade_entries ge \
+         INNER JOIN teaching_assignments ta ON ta.id = ge.teaching_id \
+         INNER JOIN courses c ON c.id = ta.course_id \
+         WHERE ge.id = ?",
+    )
+    .bind(grade_id)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(InfraError::Database)
+    .map_err(|err| infra_error_to_problem(&err))?;
+
+    grade_summary_from_row(&row, student_name)
 }
 
 pub fn grade_summary_from_row(

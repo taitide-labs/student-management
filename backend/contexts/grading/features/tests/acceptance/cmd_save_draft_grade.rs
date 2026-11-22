@@ -97,7 +97,6 @@ async fn teacher_saves_draft_rejects_withdrawn_and_locks_after_publish(pool: Sql
 }
 
 #[sqlx::test(migrations = "../../../../migrations")]
-#[ignore = "wip"]
 async fn save_draft_grade_rejects_withdrawn_student(pool: SqlitePool) {
     seed_operator(&pool, "acc-teacher", "teacher", "tok-teacher").await;
     let app = router(

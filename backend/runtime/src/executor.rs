@@ -4,8 +4,9 @@ use student_management_contracts::{
     ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest, CreateHomeroomRequest,
     DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus, GradeEntrySummary,
     HomeroomSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest,
-    ReverseEnrollmentRequest, SignInRequest, StudentDetailPayload, StudentSummary, TeachingSummary,
-    TransferHomeroomRequest, TransitionStudentRequest, UpdateHomeroomCapacityRequest,
+    ReverseEnrollmentRequest, SaveDraftGradeRequest, SignInRequest, StudentDetailPayload,
+    StudentSummary, TeachingSummary, TransferHomeroomRequest, TransitionStudentRequest,
+    UpdateHomeroomCapacityRequest,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
 
@@ -355,6 +356,19 @@ impl LocalBackend {
             &self.state,
             operator,
             student_no,
+        )
+        .await
+    }
+
+    pub async fn save_draft_grade(
+        &self,
+        operator: &OperatorPrincipal,
+        req: SaveDraftGradeRequest,
+    ) -> Result<GradeEntrySummary, ProblemDetails> {
+        student_management_grading_features::cmd_save_draft_grade::handler::execute(
+            &self.state,
+            operator,
+            req,
         )
         .await
     }

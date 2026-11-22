@@ -283,10 +283,13 @@ impl Gateway for LocalGatewayHandle {
 
     fn save_draft_grade(
         &mut self,
-        _session: &AccountSession,
-        _req: &SaveDraftGradeRequest,
+        session: &AccountSession,
+        req: &SaveDraftGradeRequest,
     ) -> Result<GradeEntrySummary, GatewayError> {
-        Err(planned_err("grading::cmd_save_draft_grade"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.save_draft_grade(&operator, req.clone()))
+            .map_err(GatewayError::Problem)
     }
 
     fn publish_grades(
