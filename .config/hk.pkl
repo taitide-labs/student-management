@@ -1,0 +1,71 @@
+amends "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Builtins.pkl"
+
+steps {
+  ["autocorrect"] {
+    glob = List("*.md", "*.rs")
+    check = "autocorrect --config .config/autocorrectrc --lint {{files}}"
+    fix = "autocorrect --config .config/autocorrectrc --fix {{files}}"
+  }
+
+  ["rumdl"] {
+    glob = List("*.md")
+    check = "rumdl check --config .config/rumdl.toml {{files}}"
+    fix = "rumdl check --config .config/rumdl.toml --fix {{files}}"
+  }
+
+  ["mmdr"] {
+    glob = List("*.md")
+    check = "for f in {{files}}; do if grep -q '```mermaid' \"$f\"; then mmdr -i \"$f\" --size --fastText >/dev/null || exit 1; fi; done"
+  }
+
+  ["lychee"] {
+    glob = List("*.md")
+    check = "lychee --config .config/lychee.toml --offline {{files}}"
+  }
+
+  ["typos"] = (Builtins.typos) {
+    exclude = List(".copier-answers.yml")
+  }
+
+  ["zizmor"] {
+    glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+    check = "zizmor --offline --quiet {{files}}"
+  }
+
+  ["cargo_fmt"] = Builtins.cargo_fmt
+
+  ["ast_grep"] {
+    glob = List("**/*.rs")
+    check = "ast-grep scan {{files}}"
+  }
+
+  ["ast_grep_rules"] {
+    glob = List("sgconfig.yml", "rules/**/*.yml")
+    check = "ast-grep scan"
+  }
+
+  ["cargo_clippy"] {
+    glob = List("**/*.rs", "Cargo.toml", "Cargo.lock", "clippy.toml")
+    check = "cargo clippy --manifest-path Cargo.toml --all-targets -- -D warnings"
+  }
+
+  ["cargo_test"] {
+    glob = List("**/*.rs", "Cargo.toml", "Cargo.lock")
+    check = "cargo nextest run --manifest-path Cargo.toml --workspace --locked --no-tests=pass"
+  }
+}
+
+hooks {
+  ["commit-msg"] {
+    steps {
+      ["conventional_commit"] = Builtins.check_conventional_commit
+    }
+  }
+
+  ["pre-push"] {
+    steps {
+      ["cargo_deny"] = Builtins.cargo_deny
+    }
+  }
+}

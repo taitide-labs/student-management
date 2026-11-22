@@ -1,0 +1,10 @@
+id: no-domain-in-query
+language: rust
+severity: error
+message: "严禁在读侧查询切片中引用写侧 domain 包，必须直接查询数据库视图或读模型投影返回"
+files:
+  - "crates/contexts/*/slices/src/qry_*.rs"
+  - "crates/contexts/*/slices/src/qry_*/**/*.rs"
+rule:
+  kind: scoped_identifier
+  regex: "_domain::"

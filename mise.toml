@@ -1,0 +1,23 @@
+#:schema https://mise.jdx.dev/schema/mise.json
+
+[tools]
+hk = "2.12"
+rumdl = "0.3.3"
+lychee = "0.24.2"
+typos = "1"
+gitleaks = "8"
+zizmor = "1"
+"github:huacnlee/autocorrect" = "2.16.3"
+"github:1jehuang/mermaid-rs-renderer" = "0.3.1"
+cargo-deny = "0.20.2"
+ast-grep = "0.51.3"
+sccache = "0.19.0"
+"github:nextest-rs/nextest" = "cargo-nextest-0.9.152"
+
+[tasks.check]
+description = "Run all documentation, formatting, ast-grep, clippy, test, and dependency audit checks"
+run = ["hk check --all --silent -n", "cargo deny check"]
+
+[tasks.fmt]
+description = "Auto-fix documentation formatting, typography, and code formatting"
+run = "hk fix --all --silent -n"
