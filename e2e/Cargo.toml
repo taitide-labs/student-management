@@ -6,25 +6,25 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
-[[test]]
-name = "walking_skeleton"
-path = "tests/walking_skeleton/main.rs"
-
 [lints]
 workspace = true
+
+[[test]]
+name = "login_and_enroll_student_e2e"
+path = "tests/login_and_enroll_student_e2e.rs"
+
+[[test]]
+name = "grading_publish_and_amend_e2e"
+path = "tests/grading_publish_and_amend_e2e.rs"
 
 [dev-dependencies]
 axum.workspace = true
 nsh-engine.workspace = true
 nsh-testing.workspace = true
 rust_decimal.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 student-management-api = { path = "../backend/api" }
 student-management-app = { path = "../clients/app" }
 student-management-contracts = { path = "../backend/contracts" }
-student-management-gateway = { path = "../clients/gateway", features = ["remote"] }
 student-management-infra = { path = "../backend/infra" }
 student-management-runtime = { path = "../backend/runtime" }
 tokio.workspace = true
-tower.workspace = true

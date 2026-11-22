@@ -4844,16 +4844,12 @@ dependencies = [
  "nsh-engine",
  "nsh-testing",
  "rust_decimal",
- "serde",
- "serde_json",
  "student-management-api",
  "student-management-app",
  "student-management-contracts",
- "student-management-gateway",
  "student-management-infra",
  "student-management-runtime",
  "tokio",
- "tower",
 ]
 
 [[package]]
@@ -4992,12 +4988,14 @@ dependencies = [
 name = "student-management-runtime"
 version = "0.1.0"
 dependencies = [
+ "rust_decimal",
  "sqlx",
  "student-management-contracts",
  "student-management-enrollment-features",
  "student-management-grading-features",
  "student-management-identity-features",
  "student-management-infra",
+ "tokio",
 ]
 
 [[package]]

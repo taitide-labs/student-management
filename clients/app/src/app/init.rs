@@ -14,14 +14,23 @@ use crate::{gateway, ui::platform};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn install_remote(base_url: &str) {
+    let trimmed = base_url.trim();
+    gateway::set_remote_base_url(trimmed);
     let remote = RemoteGateway::new(&RemoteGatewayConfig {
-        base_url: base_url.trim().to_owned(),
+        base_url: trimmed.to_owned(),
     });
     gateway::install(GatewayClient::new(Rc::new(RefCell::new(remote))));
 }
 
 pub fn configure_gateway() {
     if gateway::is_configured() {
+        return;
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(base_url) = gateway::remote_base_url() {
+        let remote = RemoteGateway::new(&RemoteGatewayConfig { base_url });
+        gateway::install(GatewayClient::new(Rc::new(RefCell::new(remote))));
         return;
     }
 
