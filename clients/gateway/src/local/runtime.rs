@@ -121,10 +121,13 @@ impl Gateway for LocalGatewayHandle {
 
     fn student_detail(
         &self,
-        _session: &AccountSession,
-        _student_no: &str,
+        session: &AccountSession,
+        student_no: &str,
     ) -> Result<StudentDetailPayload, GatewayError> {
-        Err(planned_err("enrollment::qry_student_detail"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.student_detail(&operator, student_no))
+            .map_err(GatewayError::Problem)
     }
 
     fn enroll_student(

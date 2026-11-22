@@ -11,6 +11,10 @@ mod cmd_homeroom;
 mod cmd_enroll_student;
 
 #[cfg(test)]
+#[path = "acceptance/qry_student_detail.rs"]
+mod qry_student_detail;
+
+#[cfg(test)]
 #[path = "acceptance/cmd_transfer_homeroom.rs"]
 mod cmd_transfer_homeroom;
 
