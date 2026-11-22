@@ -11,5 +11,6 @@ pub mod port;
 pub mod qry_homerooms;
 pub mod qry_student_detail;
 pub mod qry_students;
+mod student_repo;
 
 pub fn link() {}

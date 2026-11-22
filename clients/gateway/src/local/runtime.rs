@@ -158,11 +158,17 @@ impl Gateway for LocalGatewayHandle {
 
     fn suspend_student(
         &mut self,
-        _session: &AccountSession,
-        _student_no: &str,
-        _req: &TransitionStudentRequest,
+        session: &AccountSession,
+        student_no: &str,
+        req: &TransitionStudentRequest,
     ) -> Result<StudentSummary, GatewayError> {
-        Err(planned_err("enrollment::cmd_suspend_student"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(
+                self.backend
+                    .suspend_student(&operator, student_no, req.clone()),
+            )
+            .map_err(GatewayError::Problem)
     }
 
     fn resume_student(
