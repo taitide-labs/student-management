@@ -31,63 +31,183 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
 
-  build:
+  build-bins:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+            ext: tar.gz
+          - target: x86_64-apple-darwin
+            runner: macos-15-intel
+            ext: tar.gz
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
+            ext: tar.gz
           - target: aarch64-unknown-linux-gnu
-            runner: ubuntu-latest
-            cross_linux_arm64: true
+            runner: ubuntu-24.04-arm
+            ext: tar.gz
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            ext: zip
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
+    env:
+      RUSTC_WRAPPER: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install Linux UI system libraries
+        if: ${{ startsWith(matrix.runner, 'ubuntu-') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          key: ${{ matrix.target }}
-      - name: Install aarch64 Linux cross-linker
-        if: ${{ matrix.cross_linux_arm64 }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-      - name: Run tests
-        if: ${{ !matrix.cross_linux_arm64 }}
+          key: bins-${{ matrix.target }}
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          install: true
+      - name: Run cross-platform tests
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-        run: cargo test --workspace --locked --target "$TARGET"
-      - name: Build and package binary
+        run: cargo nextest run --workspace --locked --target "$TARGET"
+      - name: Build and package CLI and API binaries
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          EXT: ${{ matrix.ext }}
         run: |
-          meta=$(cargo metadata --no-deps --format-version 1)
-          bin_entry=$(echo "$meta" | jq -c '[.packages[] | . as $p | .targets[] | select(.kind | index("bin")) | {pkg: $p.name, bin: .name}][0]')
-          pkg_name=$(echo "$bin_entry" | jq -r '.pkg')
-          bin_name=$(echo "$bin_entry" | jq -r '.bin')
-          cargo build --release --locked --target "$TARGET" --bin "$bin_name"
           mkdir -p dist
-          tar -C "target/${TARGET}/release" -czf "dist/${pkg_name}-${TARGET}.tar.gz" "$bin_name"
+          cargo metadata --no-deps --format-version 1 \
+            | jq -c '.packages[] | select((.manifest_path | endswith("/backend/api/Cargo.toml")) or (.manifest_path | endswith("/clients/cli/Cargo.toml"))) | . as $p | .targets[] | select(.kind | index("bin")) | {pkg: $p.name, bin: .name}' \
+            | while IFS= read -r entry; do
+                pkg_name=$(echo "$entry" | jq -r '.pkg')
+                bin_name=$(echo "$entry" | jq -r '.bin')
+                cargo build --release --locked --target "$TARGET" -p "$pkg_name" --bin "$bin_name"
+                if [ "$EXT" = "zip" ]; then
+                  7z a "dist/${bin_name}-${TARGET}.zip" "./target/${TARGET}/release/${bin_name}.exe"
+                else
+                  tar -C "target/${TARGET}/release" -czf "dist/${bin_name}-${TARGET}.tar.gz" "$bin_name"
+                fi
+              done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: dist-${{ matrix.target }}
+          name: dist-bins-${{ matrix.target }}
+          path: dist/*
+
+  build-app:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-arm64
+            runner: macos-latest
+            rust_target: aarch64-apple-darwin
+            nsh_target: macos
+            nsh_args: "--arch arm64"
+            ext: tar.gz
+          - name: macos-x86_64
+            runner: macos-15-intel
+            rust_target: x86_64-apple-darwin
+            nsh_target: macos
+            nsh_args: "--arch x86_64"
+            ext: tar.gz
+          - name: linux-x86_64
+            runner: ubuntu-latest
+            rust_target: x86_64-unknown-linux-gnu
+            nsh_target: linux
+            nsh_args: ""
+            ext: tar.gz
+          - name: windows-x86_64
+            runner: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            nsh_target: windows
+            nsh_args: ""
+            ext: zip
+          - name: web-wasm32
+            runner: ubuntu-latest
+            rust_target: wasm32-unknown-unknown
+            nsh_target: web
+            nsh_args: ""
+            ext: tar.gz
+          - name: ios-arm64
+            runner: macos-latest
+            rust_target: aarch64-apple-ios
+            nsh_target: ios
+            nsh_args: ""
+            ext: tar.gz
+          - name: android
+            runner: ubuntu-latest
+            rust_target: aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+            nsh_target: android
+            nsh_args: ""
+            ext: apk
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    env:
+      RUSTC_WRAPPER: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Linux UI system libraries
+        if: ${{ startsWith(matrix.runner, 'ubuntu-') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          targets: ${{ matrix.rust_target }}
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          prefix-key: app-${{ matrix.name }}
+          cache-directories: |
+            clients/app/target
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          install: true
+      - name: Package client artifact
+        shell: bash
+        env:
+          PKG_LABEL: ${{ matrix.name }}
+          NSH_TARGET: ${{ matrix.nsh_target }}
+          NSH_ARGS: ${{ matrix.nsh_args }}
+          EXT: ${{ matrix.ext }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          app_pkg=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.manifest_path | endswith("/clients/app/Cargo.toml")) | .name')
+          mkdir -p out_tmp dist
+          mise x -- nsh package clients/app --target "$NSH_TARGET" --app-version "${TAG#v}" $NSH_ARGS -o out_tmp
+          if [ "$EXT" = "apk" ]; then
+            apk_file=$(find out_tmp -maxdepth 2 -type f -name '*.apk' | head -n 1)
+            cp "$apk_file" "dist/${app_pkg}-${PKG_LABEL}.apk"
+          elif [ "$EXT" = "zip" ]; then
+            7z a "dist/${app_pkg}-${PKG_LABEL}.zip" ./out_tmp/*
+          else
+            tar -C out_tmp -czf "dist/${app_pkg}-${PKG_LABEL}.tar.gz" .
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-app-${{ matrix.name }}
           path: dist/*
 
   upload-assets:
-    needs: [release-please, build]
+    needs: [release-please, build-bins, build-app]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -102,12 +222,13 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum *.tar.gz > SHA256SUMS.txt
+          sha256sum * > SHA256SUMS.txt
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
-            artifacts/*.tar.gz
+            artifacts/*
+            !artifacts/SHA256SUMS.txt
       - name: Upload release assets and publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
