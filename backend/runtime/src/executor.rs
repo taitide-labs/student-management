@@ -1,11 +1,11 @@
 use sqlx::Row;
 use student_management_contracts::{
-    AccountSession, AccountSummary, BindPersonProfileRequest, ChangeAccountRoleRequest,
-    CourseSummary, CreateCourseRequest, CreateHomeroomRequest, DisableAccountRequest,
-    EnrollStudentRequest, EnrollmentStatus, HomeroomSummary, OperatorPrincipal, ProblemDetails,
-    ProvisionAccountRequest, ReverseEnrollmentRequest, SignInRequest, StudentDetailPayload,
-    StudentSummary, TeachingSummary, TransferHomeroomRequest, TransitionStudentRequest,
-    UpdateHomeroomCapacityRequest,
+    AccountSession, AccountSummary, AssignTeachingRequest, BindPersonProfileRequest,
+    ChangeAccountRoleRequest, CourseSummary, CreateCourseRequest, CreateHomeroomRequest,
+    DisableAccountRequest, EnrollStudentRequest, EnrollmentStatus, HomeroomSummary,
+    OperatorPrincipal, ProblemDetails, ProvisionAccountRequest, ReverseEnrollmentRequest,
+    SignInRequest, StudentDetailPayload, StudentSummary, TeachingSummary, TransferHomeroomRequest,
+    TransitionStudentRequest, UpdateHomeroomCapacityRequest,
 };
 use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
 
@@ -331,5 +331,18 @@ impl LocalBackend {
     ) -> Result<Vec<TeachingSummary>, ProblemDetails> {
         student_management_grading_features::qry_teachings::handler::execute(&self.state, operator)
             .await
+    }
+
+    pub async fn assign_teaching(
+        &self,
+        operator: &OperatorPrincipal,
+        req: AssignTeachingRequest,
+    ) -> Result<TeachingSummary, ProblemDetails> {
+        student_management_grading_features::cmd_assign_teaching::handler::execute(
+            &self.state,
+            operator,
+            req,
+        )
+        .await
     }
 }

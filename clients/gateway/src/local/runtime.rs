@@ -261,10 +261,13 @@ impl Gateway for LocalGatewayHandle {
 
     fn assign_teaching(
         &mut self,
-        _session: &AccountSession,
-        _req: &AssignTeachingRequest,
+        session: &AccountSession,
+        req: &AssignTeachingRequest,
     ) -> Result<TeachingSummary, GatewayError> {
-        Err(planned_err("grading::cmd_assign_teaching"))
+        let operator = principal_from_session(session);
+        self.rt
+            .block_on(self.backend.assign_teaching(&operator, req.clone()))
+            .map_err(GatewayError::Problem)
     }
 
     fn list_grades(
