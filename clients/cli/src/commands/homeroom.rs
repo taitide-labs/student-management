@@ -1,10 +1,9 @@
 use clap::{Arg, ArgMatches, Command};
-use student_management_gateway::{
-    contract::{AccountSession, CreateHomeroomRequest, Gateway, UpdateHomeroomCapacityRequest},
-    mock::MockGateway,
+use student_management_gateway::contract::{
+    AccountSession, CreateHomeroomRequest, Gateway, UpdateHomeroomCapacityRequest,
 };
 
-use super::shared::{emit_error, emit_json_or_text, parse_u64, str_arg};
+use super::shared::{emit_error, emit_json_or_text, make_idempotency_key, parse_u64, str_arg};
 
 #[must_use]
 pub fn command() -> Command {
@@ -28,7 +27,12 @@ pub fn command() -> Command {
         )
 }
 
-pub fn execute(gw: &mut MockGateway, session: &AccountSession, sub: &ArgMatches, json: bool) -> u8 {
+pub fn execute<G: Gateway>(
+    gw: &mut G,
+    session: &AccountSession,
+    sub: &ArgMatches,
+    json: bool,
+) -> u8 {
     match sub.subcommand() {
         Some(("list", _)) => match gw.list_homerooms() {
             Ok(rooms) => emit_json_or_text(&rooms, json, &format!("共 {} 个行政班", rooms.len())),
@@ -44,7 +48,7 @@ pub fn execute(gw: &mut MockGateway, session: &AccountSession, sub: &ArgMatches,
                 name: name.to_owned(),
                 grade_year,
                 capacity,
-                idempotency_key: format!("cli-hr-create-{name}"),
+                idempotency_key: make_idempotency_key("cli-hr-create", name),
             };
             match gw.create_homeroom(session, &req) {
                 Ok(created) => emit_json_or_text(&created, json, &created.name),

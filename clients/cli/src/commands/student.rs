@@ -1,16 +1,14 @@
 use std::io::{Write, stdout};
 
 use clap::{Arg, ArgMatches, Command};
-use student_management_gateway::{
-    contract::{
-        AccountSession, EnrollStudentRequest, Gateway, ReverseEnrollmentRequest, StudentSummary,
-        TransferHomeroomRequest, TransitionStudentRequest,
-    },
-    mock::MockGateway,
+use student_management_gateway::contract::{
+    AccountSession, EnrollStudentRequest, Gateway, ReverseEnrollmentRequest, StudentSummary,
+    TransferHomeroomRequest, TransitionStudentRequest,
 };
 
 use super::shared::{
-    emit_error, emit_json_or_text, parse_status, parse_u64, require_yes, str_arg, usage_err,
+    emit_error, emit_json_or_text, make_idempotency_key, parse_status, parse_u64, require_yes,
+    str_arg, usage_err,
 };
 
 #[must_use]
@@ -69,8 +67,8 @@ fn transition_subcommand(name: &'static str, about: &'static str) -> Command {
         .arg(Arg::new("version").long("version").required(true))
 }
 
-pub fn execute(
-    gw: &mut MockGateway,
+pub fn execute<G: Gateway>(
+    gw: &mut G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,
@@ -100,7 +98,7 @@ pub fn execute(
             let req = EnrollStudentRequest {
                 full_name: name.to_owned(),
                 homeroom_id: homeroom.to_owned(),
-                idempotency_key: format!("cli-enroll-{name}-{homeroom}"),
+                idempotency_key: make_idempotency_key("cli-enroll", &format!("{name}-{homeroom}")),
             };
             match gw.enroll_student(session, &req) {
                 Ok(created) => emit_json_or_text(

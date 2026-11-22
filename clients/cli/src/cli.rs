@@ -25,6 +25,14 @@ pub fn build_command() -> Command {
                 .help("启用本地嵌入式运行时"),
         )
         .arg(
+            Arg::new("db")
+                .long("db")
+                .env("SMS_DB")
+                .global(true)
+                .value_name("PATH")
+                .help("本地 SQLite 数据库路径或连接串"),
+        )
+        .arg(
             Arg::new("token")
                 .long("token")
                 .env("SMS_TOKEN")

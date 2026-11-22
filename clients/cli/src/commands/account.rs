@@ -1,10 +1,7 @@
 use clap::{Arg, ArgMatches, Command};
-use student_management_gateway::{
-    contract::{
-        AccountSession, BindPersonProfileRequest, ChangeAccountRoleRequest, DisableAccountRequest,
-        Gateway, ProvisionAccountRequest,
-    },
-    mock::MockGateway,
+use student_management_gateway::contract::{
+    AccountSession, BindPersonProfileRequest, ChangeAccountRoleRequest, DisableAccountRequest,
+    Gateway, ProvisionAccountRequest,
 };
 
 use super::shared::{
@@ -48,8 +45,8 @@ pub fn command() -> Command {
         )
 }
 
-pub fn execute(
-    gw: &mut MockGateway,
+pub fn execute<G: Gateway>(
+    gw: &mut G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,

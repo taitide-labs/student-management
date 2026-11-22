@@ -49,6 +49,12 @@ impl LocalGatewayHandle {
             )
             .map_err(GatewayError::Problem)
     }
+
+    pub fn resolve_session(&self, token: &str) -> Result<AccountSession, GatewayError> {
+        self.rt
+            .block_on(self.backend.resolve_session(token))
+            .map_err(GatewayError::Problem)
+    }
 }
 
 fn principal_from_session(session: &AccountSession) -> OperatorPrincipal {

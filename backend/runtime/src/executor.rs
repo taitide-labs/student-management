@@ -8,7 +8,10 @@ use student_management_contracts::{
     SignInRequest, StudentDetailPayload, StudentSummary, TeachingSummary, TransferHomeroomRequest,
     TransitionStudentRequest, UpdateHomeroomCapacityRequest,
 };
-use student_management_infra::{AppState, InfraError, hash_password, infra_error_to_problem};
+use student_management_infra::{
+    AppState, InfraError, authenticate_bearer, dispatch_pending, hash_password,
+    infra_error_to_problem,
+};
 
 use crate::bootstrap::build_app_state;
 
@@ -74,6 +77,27 @@ impl LocalBackend {
 
     pub async fn sign_in(&self, req: SignInRequest) -> Result<AccountSession, ProblemDetails> {
         student_management_identity_features::cmd_sign_in::handler::execute(&self.state, req).await
+    }
+
+    pub async fn resolve_session(&self, token: &str) -> Result<AccountSession, ProblemDetails> {
+        let header = format!("Bearer {token}");
+        let principal = authenticate_bearer(&self.state.pool, Some(&header)).await?;
+        let username: String = sqlx::query("SELECT username FROM accounts WHERE account_id = ?")
+            .bind(&principal.account_id)
+            .fetch_one(&self.state.pool)
+            .await
+            .map_err(InfraError::Database)
+            .map_err(|err| infra_error_to_problem(&err))?
+            .try_get("username")
+            .map_err(|err| infra_error_to_problem(&InfraError::Database(err)))?;
+        Ok(AccountSession {
+            account_id: principal.account_id,
+            username,
+            display_name: principal.display_name,
+            role: principal.role,
+            bound_student_no: principal.bound_student_no,
+            access_token: token.to_owned(),
+        })
     }
 
     pub async fn list_accounts(
@@ -266,13 +290,18 @@ impl LocalBackend {
         student_no: &str,
         req: TransitionStudentRequest,
     ) -> Result<StudentSummary, ProblemDetails> {
-        student_management_enrollment_features::cmd_withdraw_student::handler::execute(
-            &self.state,
-            operator,
-            student_no,
-            req,
-        )
-        .await
+        let summary =
+            student_management_enrollment_features::cmd_withdraw_student::handler::execute(
+                &self.state,
+                operator,
+                student_no,
+                req,
+            )
+            .await?;
+        let _ = dispatch_pending(&self.state.pool, &self.state.clock.now_rfc3339())
+            .await
+            .map_err(|err| infra_error_to_problem(&err))?;
+        Ok(summary)
     }
 
     pub async fn graduate_student(

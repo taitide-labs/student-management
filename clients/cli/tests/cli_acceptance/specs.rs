@@ -1,9 +1,140 @@
-use std::process::{Command, Stdio};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+};
 
 use serde_json::Value;
 
+struct TempDb {
+    path: PathBuf,
+}
+
+fn remove_silent(path: &Path) {
+    if fs::remove_file(path).is_err() {}
+}
+
+impl TempDb {
+    fn new(name: &str) -> Self {
+        let path = std::env::temp_dir().join(format!("sms_cli_{name}_{}.db", std::process::id()));
+        remove_silent(&path);
+        Self { path }
+    }
+
+    fn arg(&self) -> String {
+        self.path.to_string_lossy().into_owned()
+    }
+}
+
+impl Drop for TempDb {
+    fn drop(&mut self) {
+        remove_silent(&self.path);
+        remove_silent(&self.path.with_extension("db-wal"));
+        remove_silent(&self.path.with_extension("db-shm"));
+    }
+}
+
 fn sms() -> Command {
     Command::new(env!("CARGO_BIN_EXE_sms"))
+}
+
+fn run_json(db: &str, args: &[&str]) -> Value {
+    let output = sms()
+        .arg("--local")
+        .arg("--db")
+        .arg(db)
+        .arg("--json")
+        .args(args)
+        .output()
+        .expect("run sms command");
+    assert!(
+        output.status.success(),
+        "cmd {args:?} failed stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).expect("valid json stdout")
+}
+
+fn str_field(val: &Value, key: &str) -> String {
+    val.get(key)
+        .and_then(Value::as_str)
+        .expect("string field")
+        .to_owned()
+}
+
+fn setup_teaching_and_student(db: &str) -> (String, String) {
+    let hr = run_json(
+        db,
+        &[
+            "homeroom",
+            "create",
+            "--name",
+            "高一 3 班",
+            "--grade-year",
+            "2026",
+            "--capacity",
+            "35",
+        ],
+    );
+    assert_eq!(hr.get("name"), Some(&Value::from("高一 3 班")));
+    let hr_id = str_field(&hr, "id");
+
+    let stu = run_json(
+        db,
+        &["student", "enroll", "--name", "张三", "--homeroom", &hr_id],
+    );
+    let student_no = str_field(&stu, "student_no");
+
+    let crs = run_json(
+        db,
+        &[
+            "course",
+            "create",
+            "--code",
+            "ENG101",
+            "--name",
+            "大学英语",
+            "--max-score",
+            "100",
+            "--pass-score",
+            "60",
+        ],
+    );
+    assert_eq!(crs.get("code"), Some(&Value::from("ENG101")));
+    let course_id = str_field(&crs, "id");
+
+    let acc = run_json(
+        db,
+        &[
+            "account",
+            "provision",
+            "--username",
+            "cli_teacher",
+            "--display-name",
+            "李老师",
+            "--role",
+            "teacher",
+        ],
+    );
+    assert_eq!(acc.get("username"), Some(&Value::from("cli_teacher")));
+    let teacher_id = str_field(&acc, "account_id");
+
+    let tch = run_json(
+        db,
+        &[
+            "teaching",
+            "assign",
+            "--course",
+            &course_id,
+            "--homeroom",
+            &hr_id,
+            "--term",
+            "2026-秋",
+            "--teacher",
+            &teacher_id,
+        ],
+    );
+    (student_no, str_field(&tch, "id"))
 }
 
 #[test]
@@ -21,131 +152,106 @@ fn help_lists_orthogonal_resources() {
 
 #[test]
 fn homeroom_course_grade_and_account_subcommands_work_end_to_end() {
-    let hr_out = sms()
-        .args([
-            "--local",
-            "--json",
-            "homeroom",
-            "create",
-            "--name",
-            "高一 3 班",
-            "--grade-year",
-            "2026",
-            "--capacity",
-            "35",
-        ])
-        .output()
-        .expect("homeroom create");
-    assert!(
-        hr_out.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&hr_out.stderr)
-    );
-    let hr_json: Value = serde_json::from_slice(&hr_out.stdout).expect("homeroom json");
-    assert_eq!(hr_json.get("name"), Some(&Value::from("高一 3 班")));
+    let db = TempDb::new("e2e");
+    let db_arg = db.arg();
+    let (student_no, teaching_id) = setup_teaching_and_student(&db_arg);
 
-    let crs_out = sms()
-        .args([
-            "--local",
-            "--json",
-            "course",
-            "create",
-            "--code",
-            "ENG101",
-            "--name",
-            "大学英语",
-            "--max-score",
-            "100",
-            "--pass-score",
-            "60",
-        ])
-        .output()
-        .expect("course create");
-    assert!(
-        crs_out.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&crs_out.stderr)
-    );
-    let crs_json: Value = serde_json::from_slice(&crs_out.stdout).expect("course json");
-    assert_eq!(crs_json.get("code"), Some(&Value::from("ENG101")));
-
-    let acc_out = sms()
-        .args([
-            "--local",
-            "--json",
-            "account",
-            "provision",
-            "--username",
-            "cli_teacher",
-            "--display-name",
-            "李老师",
-            "--role",
-            "teacher",
-        ])
-        .output()
-        .expect("account provision");
-    assert!(
-        acc_out.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&acc_out.stderr)
-    );
-    let acc_json: Value = serde_json::from_slice(&acc_out.stdout).expect("account json");
-    assert_eq!(acc_json.get("username"), Some(&Value::from("cli_teacher")));
-
-    let grd_out = sms()
-        .args([
-            "--local",
-            "--json",
+    let grd_json = run_json(
+        &db_arg,
+        &[
             "grade",
             "save",
             "--teaching",
-            "teach-2",
+            &teaching_id,
             "--student-no",
-            "20261001",
+            &student_no,
             "--score",
             "91.5",
-        ])
-        .output()
-        .expect("grade save");
-    assert!(
-        grd_out.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&grd_out.stderr)
+        ],
     );
-    let grd_json: Value = serde_json::from_slice(&grd_out.stdout).expect("grade json");
     assert_eq!(grd_json.get("score"), Some(&Value::from("91.5")));
 }
 
 #[test]
 fn student_list_json_outputs_seeded_roster() {
-    let output = sms()
-        .args(["--local", "student", "list", "--json"])
-        .output()
-        .expect("run sms student list --json");
-    assert!(
-        output.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&output.stderr)
+    let db = TempDb::new("list");
+    let db_arg = db.arg();
+
+    let hr = run_json(
+        &db_arg,
+        &[
+            "homeroom",
+            "create",
+            "--name",
+            "高一 1 班",
+            "--grade-year",
+            "2026",
+        ],
     );
-    let parsed: Value = serde_json::from_slice(&output.stdout).expect("stdout must be valid JSON");
+    let hr_id = str_field(&hr, "id");
+    let enrolled = run_json(
+        &db_arg,
+        &[
+            "student",
+            "enroll",
+            "--name",
+            "名单生",
+            "--homeroom",
+            &hr_id,
+        ],
+    );
+    let stu_no = str_field(&enrolled, "student_no");
+
+    let parsed = run_json(&db_arg, &["student", "list"]);
     let rows = parsed.as_array().expect("student list must be JSON array");
     assert!(
         rows.iter()
-            .any(|row| row.get("student_no") == Some(&Value::from("20261001")))
+            .any(|row| row.get("student_no").and_then(Value::as_str) == Some(stu_no.as_str()))
     );
 }
 
 #[test]
 fn student_enroll_full_homeroom_exits_four_on_stderr() {
+    let db = TempDb::new("cap");
+    let db_arg = db.arg();
+
+    let hr = run_json(
+        &db_arg,
+        &[
+            "homeroom",
+            "create",
+            "--name",
+            "容量班",
+            "--grade-year",
+            "2026",
+            "--capacity",
+            "1",
+        ],
+    );
+    let hr_id = str_field(&hr, "id");
+    let _first = run_json(
+        &db_arg,
+        &[
+            "student",
+            "enroll",
+            "--name",
+            "占满生",
+            "--homeroom",
+            &hr_id,
+        ],
+    );
+
     let output = sms()
         .args([
             "--local",
+            "--db",
+            &db_arg,
             "student",
             "enroll",
             "--name",
             "满员拦截",
             "--homeroom",
-            "hr-2026-2",
+            &hr_id,
         ])
         .output()
         .expect("run sms student enroll");

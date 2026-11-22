@@ -1,14 +1,13 @@
 use clap::{Arg, ArgMatches, Command};
 use rust_decimal::Decimal;
-use student_management_gateway::{
-    contract::{
-        AccountSession, AmendGradeRequest, AssignTeachingRequest, CreateCourseRequest, Gateway,
-        PublishGradesRequest, SaveDraftGradeRequest,
-    },
-    mock::MockGateway,
+use student_management_gateway::contract::{
+    AccountSession, AmendGradeRequest, AssignTeachingRequest, CreateCourseRequest, Gateway,
+    PublishGradesRequest, SaveDraftGradeRequest,
 };
 
-use super::shared::{emit_error, emit_json_or_text, parse_u64, str_arg, usage_err};
+use super::shared::{
+    emit_error, emit_json_or_text, make_idempotency_key, parse_u64, str_arg, usage_err,
+};
 
 #[must_use]
 pub fn course_command() -> Command {
@@ -79,8 +78,8 @@ pub fn grade_command() -> Command {
         )
 }
 
-pub fn execute_course(
-    gw: &mut MockGateway,
+pub fn execute_course<G: Gateway>(
+    gw: &mut G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,
@@ -114,8 +113,8 @@ pub fn execute_course(
     }
 }
 
-pub fn execute_teaching(
-    gw: &mut MockGateway,
+pub fn execute_teaching<G: Gateway>(
+    gw: &mut G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,
@@ -131,7 +130,10 @@ pub fn execute_teaching(
             let term = str_arg(args, "term").to_owned();
             let teacher_account_id = str_arg(args, "teacher").to_owned();
             let req = AssignTeachingRequest {
-                idempotency_key: format!("cli-tch-{course_id}-{homeroom_id}-{term}"),
+                idempotency_key: make_idempotency_key(
+                    "cli-tch",
+                    &format!("{course_id}-{homeroom_id}-{term}"),
+                ),
                 course_id,
                 homeroom_id,
                 term,
@@ -146,8 +148,8 @@ pub fn execute_teaching(
     }
 }
 
-pub fn execute_grade(
-    gw: &mut MockGateway,
+pub fn execute_grade<G: Gateway>(
+    gw: &mut G,
     session: &AccountSession,
     sub: &ArgMatches,
     json: bool,

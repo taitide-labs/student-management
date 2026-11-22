@@ -22,4 +22,4 @@ clap.workspace = true
 rust_decimal.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-student-management-gateway = { path = "../gateway", default-features = false, features = ["local", "mock"] }
+student-management-gateway = { path = "../gateway", default-features = false, features = ["local"] }

@@ -7,6 +7,15 @@ pub fn str_arg<'a>(args: &'a ArgMatches, key: &str) -> &'a str {
     args.get_one::<String>(key).map_or("", String::as_str)
 }
 
+pub fn make_idempotency_key(prefix: &str, detail: &str) -> String {
+    let sanitized: String = detail
+        .chars()
+        .map(|ch| if ch.is_whitespace() { '-' } else { ch })
+        .take(96)
+        .collect();
+    format!("{prefix}-{sanitized}")
+}
+
 pub fn parse_u64(args: &ArgMatches, key: &str) -> u64 {
     str_arg(args, key).parse::<u64>().unwrap_or(0)
 }
