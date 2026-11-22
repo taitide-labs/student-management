@@ -1,0 +1,41 @@
+[package]
+name = "student-management-identity-features"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[features]
+default = []
+http = [
+  "dep:axum",
+  "dep:utoipa",
+  "student-management-contracts/openapi",
+  "student-management-infra/http",
+]
+
+[[test]]
+name = "acceptance"
+path = "tests/acceptance.rs"
+required-features = ["http"]
+
+[dependencies]
+axum = { workspace = true, optional = true }
+inventory.workspace = true
+serde.workspace = true
+sqlx.workspace = true
+student-management-contracts = { path = "../../../contracts" }
+student-management-identity-domain = { path = "../domain" }
+student-management-infra = { path = "../../../infra" }
+student-management-primitives = { path = "../../../primitives" }
+utoipa = { workspace = true, optional = true }
+
+[dev-dependencies]
+rstest.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tower.workspace = true

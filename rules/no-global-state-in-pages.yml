@@ -1,0 +1,17 @@
+id: no-global-state-in-pages
+language: rust
+severity: error
+message: "页面层禁止直接申请或读取全局 global::<T>() 状态，全局共享缓存必须归属 features/*/store.rs 或 app 组合根"
+files:
+  - "clients/app/src/pages/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: "^(.*::)?global$"
+    - kind: call_expression
+      has:
+        field: function
+        regex: "^global(::|<)"

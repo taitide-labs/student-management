@@ -1,0 +1,13 @@
+id: no-gateway-in-client-view
+language: rust
+severity: error
+message: "客户端 view.rs 与页面层禁止直接访问 crate::gateway，必须经由切片 handler 或 store 触发请求"
+files:
+  - "clients/app/src/features/**/view.rs"
+  - "clients/app/src/pages/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  kind: scoped_identifier
+  regex: "^crate::gateway(::|$)"

@@ -22,6 +22,10 @@ sccache = "0.19.0"
 description = "Auto-fix documentation formatting, typography, and code formatting"
 run = "hk fix --all -q -n"
 
+[tasks.lock]
+description = "Update Cargo.lock for workspace dependency changes"
+run = "cargo generate-lockfile"
+
 [tasks.docs]
 description = "Run documentation formatting, Mermaid, link, and typo checks"
 run = "hk check --all -q -n --step autocorrect --step rumdl --step mmdr --step lychee --step typos"
@@ -41,6 +45,10 @@ run = "nsh test clients/app"
 [tasks.web-check]
 description = "Verify wasm32 Web build compatibility for the NSH app"
 run = "cargo check --manifest-path clients/app/Cargo.toml --target wasm32-unknown-unknown --locked"
+
+[tasks.e2e]
+description = "Run end-to-end UI to API integration tests"
+run = "cargo nextest run --manifest-path e2e/Cargo.toml --locked"
 
 [tasks.mutants]
 description = "Run mutation testing on primitives and domain crates"
@@ -62,3 +70,31 @@ fi
 [tasks.check]
 description = "Run fast workspace checks (docs, fmt, ast-grep, clippy, Rust tests, and cargo-deny)"
 run = ["hk check --all -q -n", "cargo deny check"]
+
+[tasks.app]
+description = "Run desktop NSH client"
+run = "nsh run clients/app"
+
+[tasks.tui]
+description = "Run TUI client in current terminal"
+run = "nsh run clients/app --target tui"
+
+[tasks.mobile]
+description = "Run mobile shell via Mac Catalyst (requires Xcode and rustup target aarch64-apple-ios-macabi)"
+run = "nsh run clients/app --target catalyst"
+
+[tasks.web]
+description = "Run Web client in browser"
+run = 'PATH="/opt/homebrew/opt/llvm/bin:/usr/local/opt/llvm/bin:$PATH" nsh run clients/app --target web'
+
+[tasks.cli]
+description = "Run workspace CLI client (pass args after --)"
+run = "cargo run --quiet --manifest-path clients/cli/Cargo.toml --"
+
+[tasks.api]
+description = "Run backend HTTP API server"
+run = "cargo run --quiet --manifest-path backend/api/Cargo.toml"
+
+[tasks.openapi]
+description = "Export OpenAPI schema to contracts/openapi.json"
+run = "cargo run --quiet --manifest-path backend/api/Cargo.toml -- --export-openapi contracts/openapi.json"

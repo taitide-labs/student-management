@@ -1,0 +1,17 @@
+{
+  "name": "学生管理系统",
+  "id": "dev.taitide.studentmanagement",
+  "version": "0.1.0",
+  "build": 1,
+  "appearance": "system",
+  "theme": "theme.json",
+  "rust": ".",
+  "root": "App",
+  "capabilities": {
+    "application": true,
+    "statusBar": true,
+    "network": {
+      "hosts": ["localhost", "127.0.0.1"]
+    }
+  }
+}

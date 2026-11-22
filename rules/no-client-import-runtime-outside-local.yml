@@ -1,0 +1,14 @@
+id: no-client-import-runtime-outside-local
+language: rust
+severity: error
+message: "严禁在 gateway local 适配器之外引用 backend/runtime"
+files:
+  - "clients/**/*.rs"
+ignores:
+  - "clients/gateway/src/local/**/*.rs"
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: "^student_management_runtime"
+    - kind: use_declaration
+      regex: "student_management_runtime"

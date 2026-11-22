@@ -1,0 +1,12 @@
+id: no-view-in-client-command
+language: rust
+severity: error
+message: "客户端切片 command.rs 必须保持纯函数输入校验与请求构建，严禁导入 nsh_core、nsh_base、ui 或 gateway"
+files:
+  - "clients/app/src/features/**/command.rs"
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: "^(nsh_core|nsh_base|crate::ui|crate::gateway)(::|$)"
+    - kind: identifier
+      regex: "^(nsh_core|nsh_base)$"

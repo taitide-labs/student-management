@@ -1,0 +1,16 @@
+id: no-local-state-root-in-features
+language: rust
+severity: error
+message: "禁止在功能切片或页面内私自创建 thread_local! 状态根或传输实例，必须经由应用组合根注入唯一网关句柄"
+files:
+  - "clients/app/src/features/**/*.rs"
+  - "clients/app/src/pages/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  any:
+    - kind: identifier
+      regex: "^thread_local$"
+    - kind: scoped_identifier
+      regex: "student_management_gateway::(mock|remote|local)::"

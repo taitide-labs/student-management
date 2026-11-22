@@ -1,0 +1,15 @@
+id: no-http-in-infra-and-runtime
+language: rust
+severity: error
+message: "严禁在无协议基础设施与 runtime 组合根引入 axum 或 utoipa，HTTP 协议仅允许留在 api 与特性切片 endpoint.rs"
+files:
+  - "backend/infra/src/**/*.rs"
+  - "backend/runtime/src/**/*.rs"
+ignores:
+  - "backend/infra/src/registry.rs"
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: "^(axum|utoipa)::"
+    - kind: use_declaration
+      regex: "^use (axum|utoipa)"

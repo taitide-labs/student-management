@@ -1,0 +1,17 @@
+id: no-effect-outside-ui
+language: rust
+severity: error
+message: "禁止在 app、features、pages 层直接使用 effect()；请改用事件回调、computed 或将副作用桥接收敛至 clients/app/src/ui/ 基础设施层"
+files:
+  - "clients/app/src/app/**/*.rs"
+  - "clients/app/src/features/**/*.rs"
+  - "clients/app/src/pages/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  kind: call_expression
+  has:
+    field: function
+    kind: identifier
+    regex: "^effect$"

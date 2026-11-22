@@ -1,0 +1,1886 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "学生管理系统 API",
+    "description": "由后端切片派生并导出的南北向契约唯一事实源",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/accounts": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "operationId": "list_accounts",
+        "responses": {
+          "200": {
+            "description": "账号列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountSummary"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "identity"
+        ],
+        "operationId": "provision_account",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "开立账号成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "账号重复",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{account_id}/disable": {
+      "post": {
+        "tags": [
+          "identity"
+        ],
+        "operationId": "disable_account",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "目标账号标识",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "账号停用成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSummary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "禁止停用本人或版本冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{account_id}/person-profile": {
+      "put": {
+        "tags": [
+          "identity"
+        ],
+        "operationId": "bind_person_profile",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "目标账号标识",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindPersonProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "绑定人员标识成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSummary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "角色或版本冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{account_id}/role": {
+      "patch": {
+        "tags": [
+          "identity"
+        ],
+        "operationId": "change_account_role",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "目标账号标识",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeAccountRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "角色变更成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSummary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本冲突或账号已停用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sign-in": {
+      "post": {
+        "tags": [
+          "identity"
+        ],
+        "operationId": "sign_in",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "凭证无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/courses": {
+      "get": {
+        "tags": [
+          "grading"
+        ],
+        "operationId": "list_courses",
+        "responses": {
+          "200": {
+            "description": "课程列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CourseSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "grading"
+        ],
+        "operationId": "create_course",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCourseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "创建课程成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/grade-amendments": {
+      "get": {
+        "tags": [
+          "grading"
+        ],
+        "operationId": "list_grade_amendments",
+        "parameters": [
+          {
+            "name": "grade_id",
+            "in": "query",
+            "description": "按成绩记录过滤",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成绩修订审计列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GradeAmendmentRecord"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/grades": {
+      "get": {
+        "tags": [
+          "grading"
+        ],
+        "operationId": "list_grades",
+        "parameters": [
+          {
+            "name": "student_no",
+            "in": "query",
+            "description": "按学号过滤成绩",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成绩列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GradeEntrySummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/grades/draft": {
+      "put": {
+        "tags": [
+          "grading"
+        ],
+        "operationId": "save_draft_grade",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDraftGradeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "暂存草稿成绩成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradeEntrySummary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "成绩已锁定或学生非在籍",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/grades/publish": {
+      "post": {
+        "tags": [
+          "grading"
+        ],
+        "operationId": "publish_grades",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishGradesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "发布并锁定成绩成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GradeEntrySummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/grades/{grade_id}/amend": {
+      "post": {
+        "tags": [
+          "grading"
+        ],
+        "operationId": "amend_grade",
+        "parameters": [
+          {
+            "name": "grade_id",
+            "in": "path",
+            "description": "成绩记录标识",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AmendGradeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "管理员修订成绩成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradeEntrySummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/homerooms": {
+      "get": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "list_homerooms",
+        "responses": {
+          "200": {
+            "description": "行政班列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HomeroomSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "create_homeroom",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHomeroomRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "创建行政班成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeroomSummary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "班级名称重复",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/homerooms/{homeroom_id}/capacity": {
+      "patch": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "update_homeroom_capacity",
+        "parameters": [
+          {
+            "name": "homeroom_id",
+            "in": "path",
+            "description": "行政班标识",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHomeroomCapacityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "调整容量成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeroomSummary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "低于在籍人数或版本冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students": {
+      "get": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "list_students",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "学号或姓名关键字",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "学籍状态过滤",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/EnrollmentStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "学生列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StudentSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "enroll_student",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollStudentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "入学建档成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentSummary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "班级满员或幂等冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_no}": {
+      "get": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "student_detail",
+        "parameters": [
+          {
+            "name": "student_no",
+            "in": "path",
+            "description": "学号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "学生档案与异动记录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentDetailPayload"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "学生不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_no}/graduate": {
+      "post": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "graduate_student",
+        "parameters": [
+          {
+            "name": "student_no",
+            "in": "path",
+            "description": "学号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionStudentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "办理毕业成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_no}/resume": {
+      "post": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "resume_student",
+        "parameters": [
+          {
+            "name": "student_no",
+            "in": "path",
+            "description": "学号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionStudentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "办理复学成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_no}/reverse": {
+      "post": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "reverse_enrollment",
+        "parameters": [
+          {
+            "name": "student_no",
+            "in": "path",
+            "description": "学号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReverseEnrollmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "终态误操作冲正成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_no}/suspend": {
+      "post": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "suspend_student",
+        "parameters": [
+          {
+            "name": "student_no",
+            "in": "path",
+            "description": "学号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionStudentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "办理休学成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_no}/transfer": {
+      "post": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "transfer_homeroom",
+        "parameters": [
+          {
+            "name": "student_no",
+            "in": "path",
+            "description": "学号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferHomeroomRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "转班成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentSummary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "状态锁定、容量已满或版本冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_no}/withdraw": {
+      "post": {
+        "tags": [
+          "enrollment"
+        ],
+        "operationId": "withdraw_student",
+        "parameters": [
+          {
+            "name": "student_no",
+            "in": "path",
+            "description": "学号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionStudentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "办理退学成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teachings": {
+      "get": {
+        "tags": [
+          "grading"
+        ],
+        "operationId": "list_teachings",
+        "responses": {
+          "200": {
+            "description": "教学任务列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeachingSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "grading"
+        ],
+        "operationId": "assign_teaching",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTeachingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "分派教学任务成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeachingSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountSession": {
+        "type": "object",
+        "required": [
+          "account_id",
+          "username",
+          "display_name",
+          "role",
+          "access_token"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "bound_student_no": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "AccountStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "disabled"
+        ]
+      },
+      "AccountSummary": {
+        "type": "object",
+        "required": [
+          "account_id",
+          "username",
+          "display_name",
+          "role",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string"
+          },
+          "bound_student_no": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatus"
+          },
+          "username": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "AmendGradeRequest": {
+        "type": "object",
+        "required": [
+          "new_score",
+          "reason",
+          "version",
+          "idempotency_key"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "new_score": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "AssignTeachingRequest": {
+        "type": "object",
+        "required": [
+          "course_id",
+          "homeroom_id",
+          "term",
+          "teacher_account_id",
+          "idempotency_key"
+        ],
+        "properties": {
+          "course_id": {
+            "type": "string"
+          },
+          "homeroom_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "teacher_account_id": {
+            "type": "string"
+          },
+          "term": {
+            "type": "string"
+          }
+        }
+      },
+      "BindPersonProfileRequest": {
+        "type": "object",
+        "required": [
+          "version",
+          "idempotency_key"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "student_no": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "ChangeAccountRoleRequest": {
+        "type": "object",
+        "required": [
+          "role",
+          "version",
+          "idempotency_key"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "CourseSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "max_score",
+          "pass_score",
+          "version"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "max_score": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pass_score": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "CreateCourseRequest": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "max_score",
+          "pass_score",
+          "idempotency_key"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "max_score": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pass_score": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateHomeroomRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "grade_year",
+          "idempotency_key"
+        ],
+        "properties": {
+          "capacity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "grade_year": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "DisableAccountRequest": {
+        "type": "object",
+        "required": [
+          "reason",
+          "version",
+          "idempotency_key"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "EnrollStudentRequest": {
+        "type": "object",
+        "required": [
+          "full_name",
+          "homeroom_id",
+          "idempotency_key"
+        ],
+        "properties": {
+          "full_name": {
+            "type": "string"
+          },
+          "homeroom_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          }
+        }
+      },
+      "EnrollmentChangeRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "student_no",
+          "action",
+          "from_summary",
+          "to_summary",
+          "reason",
+          "operator_name",
+          "occurred_at"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "from_summary": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "occurred_at": {
+            "type": "string"
+          },
+          "operator_name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "student_no": {
+            "type": "string"
+          },
+          "to_summary": {
+            "type": "string"
+          }
+        }
+      },
+      "EnrollmentStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "suspended",
+          "withdrawn",
+          "graduated"
+        ]
+      },
+      "GradeAmendmentRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "grade_id",
+          "course_name",
+          "student_no",
+          "student_name",
+          "previous_score",
+          "new_score",
+          "reason",
+          "operator_name",
+          "occurred_at"
+        ],
+        "properties": {
+          "course_name": {
+            "type": "string"
+          },
+          "grade_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "new_score": {
+            "type": "string"
+          },
+          "occurred_at": {
+            "type": "string"
+          },
+          "operator_name": {
+            "type": "string"
+          },
+          "previous_score": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "student_name": {
+            "type": "string"
+          },
+          "student_no": {
+            "type": "string"
+          }
+        }
+      },
+      "GradeEntrySummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "teaching_id",
+          "course_code",
+          "course_name",
+          "term",
+          "student_no",
+          "student_name",
+          "score",
+          "max_score",
+          "status",
+          "version"
+        ],
+        "properties": {
+          "course_code": {
+            "type": "string"
+          },
+          "course_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "max_score": {
+            "type": "string"
+          },
+          "score": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/GradeStatus"
+          },
+          "student_name": {
+            "type": "string"
+          },
+          "student_no": {
+            "type": "string"
+          },
+          "teaching_id": {
+            "type": "string"
+          },
+          "term": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "GradeStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "published",
+          "voided"
+        ]
+      },
+      "HomeroomSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "grade_year",
+          "active_count",
+          "version"
+        ],
+        "properties": {
+          "active_count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "capacity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "grade_year": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "ProvisionAccountRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "display_name",
+          "role",
+          "idempotency_key"
+        ],
+        "properties": {
+          "bound_student_no": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "PublishGradesRequest": {
+        "type": "object",
+        "required": [
+          "teaching_id",
+          "idempotency_key"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "teaching_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ReverseEnrollmentRequest": {
+        "type": "object",
+        "required": [
+          "target_status",
+          "reason",
+          "version",
+          "idempotency_key"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "target_status": {
+            "$ref": "#/components/schemas/EnrollmentStatus"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "teacher",
+          "student"
+        ]
+      },
+      "SaveDraftGradeRequest": {
+        "type": "object",
+        "required": [
+          "teaching_id",
+          "student_no",
+          "score",
+          "idempotency_key"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "score": {
+            "type": "string"
+          },
+          "student_no": {
+            "type": "string"
+          },
+          "teaching_id": {
+            "type": "string"
+          }
+        }
+      },
+      "SignInRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "StudentDetailPayload": {
+        "type": "object",
+        "required": [
+          "student",
+          "changes"
+        ],
+        "properties": {
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnrollmentChangeRecord"
+            }
+          },
+          "student": {
+            "$ref": "#/components/schemas/StudentSummary"
+          }
+        }
+      },
+      "StudentSummary": {
+        "type": "object",
+        "required": [
+          "student_no",
+          "full_name",
+          "homeroom_id",
+          "homeroom_name",
+          "status",
+          "enrolled_on",
+          "version"
+        ],
+        "properties": {
+          "enrolled_on": {
+            "type": "string"
+          },
+          "full_name": {
+            "type": "string"
+          },
+          "homeroom_id": {
+            "type": "string"
+          },
+          "homeroom_name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnrollmentStatus"
+          },
+          "student_no": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "TeachingSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "course_id",
+          "course_code",
+          "course_name",
+          "homeroom_id",
+          "homeroom_name",
+          "term",
+          "teacher_account_id",
+          "teacher_name",
+          "version"
+        ],
+        "properties": {
+          "course_code": {
+            "type": "string"
+          },
+          "course_id": {
+            "type": "string"
+          },
+          "course_name": {
+            "type": "string"
+          },
+          "homeroom_id": {
+            "type": "string"
+          },
+          "homeroom_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "teacher_account_id": {
+            "type": "string"
+          },
+          "teacher_name": {
+            "type": "string"
+          },
+          "term": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "TransferHomeroomRequest": {
+        "type": "object",
+        "required": [
+          "target_homeroom_id",
+          "reason",
+          "version",
+          "idempotency_key"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "target_homeroom_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "TransitionStudentRequest": {
+        "type": "object",
+        "required": [
+          "reason",
+          "version",
+          "idempotency_key"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "UpdateHomeroomCapacityRequest": {
+        "type": "object",
+        "required": [
+          "version",
+          "idempotency_key"
+        ],
+        "properties": {
+          "capacity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

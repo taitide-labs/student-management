@@ -20,6 +20,11 @@
           "type": "toml",
           "path": "Cargo.lock",
           "jsonpath": "$.package[?(!@.source)].version"
+        },
+        {
+          "type": "json",
+          "path": "clients/app/nsh.json",
+          "jsonpath": "$.version"
         }
       ]
     }

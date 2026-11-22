@@ -1,0 +1,20 @@
+id: no-imperative-timers-outside-ui
+language: rust
+severity: error
+message: "禁止在 app、features、pages 层私自调用命令式定时器或阻塞睡眠，应交由底层 UI 控件或异步边界统一管理"
+files:
+  - "clients/app/src/app/**/*.rs"
+  - "clients/app/src/features/**/*.rs"
+  - "clients/app/src/pages/**/*.rs"
+ignores:
+  - "**/tests.rs"
+  - "**/tests/**/*.rs"
+rule:
+  any:
+    - kind: call_expression
+      has:
+        field: function
+        kind: identifier
+        regex: "^(set_interval|set_timeout)$"
+    - kind: scoped_identifier
+      regex: "^std::thread::sleep$"

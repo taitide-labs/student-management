@@ -1,0 +1,30 @@
+[package]
+name = "student-management-e2e"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[[test]]
+name = "login_and_enroll_student_e2e"
+path = "tests/login_and_enroll_student_e2e.rs"
+
+[[test]]
+name = "grading_publish_and_amend_e2e"
+path = "tests/grading_publish_and_amend_e2e.rs"
+
+[dev-dependencies]
+axum.workspace = true
+nsh-engine.workspace = true
+nsh-testing = { workspace = true, features = ["live"] }
+rust_decimal.workspace = true
+student-management-api = { path = "../backend/api" }
+student-management-app = { path = "../clients/app" }
+student-management-contracts = { path = "../backend/contracts" }
+student-management-infra = { path = "../backend/infra" }
+student-management-runtime = { path = "../backend/runtime" }
+tokio.workspace = true

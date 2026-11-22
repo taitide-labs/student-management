@@ -1,0 +1,12 @@
+id: no-client-import-backend-internals
+language: rust
+severity: error
+message: "严禁客户端直接引用后端内部包或上下文模块，仅允许通过 contracts 与 gateway 交互"
+files:
+  - "clients/**/*.rs"
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: "^student_management_(primitives|infra|api|identity_|enrollment_|grading_)"
+    - kind: use_declaration
+      regex: "student_management_(primitives|infra|api|identity_|enrollment_|grading_)"
