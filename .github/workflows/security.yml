@@ -12,7 +12,7 @@ permissions: {}
 jobs:
   codeql:
     name: CodeQL Deep Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -42,7 +42,7 @@ jobs:
 
   cargo-deny:
     name: Weekly Dependency Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -57,7 +57,7 @@ jobs:
 
   zizmor:
     name: Workflow Security Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       security-events: write
@@ -69,7 +69,7 @@ jobs:
 
   mutants:
     name: Weekly Mutation Testing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read

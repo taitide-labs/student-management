@@ -12,7 +12,7 @@ jobs:
   close-external-pr:
     name: Close External Fork PR
     if: ${{ github.event.pull_request.head.repo.fork == true }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:

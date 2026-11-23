@@ -19,7 +19,7 @@ concurrency:
 jobs:
   plan:
     name: Path Filter
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: read
@@ -65,7 +65,7 @@ jobs:
     name: Docs Checks
     needs: plan
     if: ${{ needs.plan.outputs.docs == 'true' || needs.plan.outputs.code == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -82,7 +82,7 @@ jobs:
     name: Checks
     needs: plan
     if: ${{ needs.plan.outputs.code == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     env:
@@ -110,7 +110,7 @@ jobs:
     name: Client & Web Checks
     needs: plan
     if: ${{ needs.plan.outputs.client == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     env:
@@ -144,7 +144,7 @@ jobs:
     name: Security
     needs: plan
     if: ${{ needs.plan.outputs.code == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -166,7 +166,7 @@ jobs:
     name: Merge Gate
     needs: [plan, docs, checks, client, security]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Verify required checks
         env:
