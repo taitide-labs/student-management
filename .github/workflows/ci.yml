@@ -74,9 +74,11 @@ jobs:
           persist-credentials: false
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: true
+          install: false
       - name: Run docs checks
-        run: hk check --all -q -n --step autocorrect --step rumdl --step mmdr --step lychee --step typos
+        run: |
+          mise install hk rumdl lychee typos "github:huacnlee/autocorrect" "github:1jehuang/mermaid-rs-renderer"
+          hk check --all -q -n --step autocorrect --step rumdl --step mmdr --step lychee --step typos
 
   checks:
     name: Checks
@@ -94,7 +96,7 @@ jobs:
       - name: Install Linux UI system libraries
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
@@ -102,9 +104,11 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: true
+          install: false
       - name: Run code checks
-        run: hk check --all -q -n --step cargo_fmt --step ast_grep --step ast_grep_rules --step cargo_clippy --step cargo_test
+        run: |
+          mise install hk ast-grep "github:nextest-rs/nextest"
+          hk check --all -q -n --step cargo_fmt --step ast_grep --step ast_grep_rules --step cargo_clippy --step cargo_test
 
   client:
     name: Client & Web Checks
@@ -122,7 +126,7 @@ jobs:
       - name: Install Linux UI system libraries
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
@@ -134,7 +138,9 @@ jobs:
             clients/app/target
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: true
+          install: false
+      - name: Install nsh
+        run: mise install "github:longbridge/nsh"
       - name: Verify wasm32 Web compatibility
         run: cargo check --manifest-path clients/app/Cargo.toml --target wasm32-unknown-unknown --locked
       - name: Run NSH headless UI acceptance tests
@@ -154,11 +160,13 @@ jobs:
           persist-credentials: false
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: true
+          install: false
+      - name: Install security tools
+        run: mise install zizmor gitleaks cargo-deny
       - name: Scan workflows with zizmor
-        run: mise x -- zizmor --quiet .github/workflows
+        run: zizmor --quiet .github/workflows
       - name: Scan for leaked secrets
-        run: mise x -- gitleaks git --verbose --redact .
+        run: gitleaks git --verbose --redact .
       - name: Audit dependencies with cargo-deny
         run: cargo deny check
 
