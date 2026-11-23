@@ -16,4 +16,13 @@ fn course_rejects_pass_score_above_max() {
         res,
         Err(GradingDomainError::PassScoreExceedsMax { .. })
     ));
+
+    let exact = Course::create(
+        "c-2".to_owned(),
+        CourseCode::try_new("math102").expect("code"),
+        NonEmptyText::try_new("课程名称", "线性代数", 64).expect("name"),
+        MaxScore::try_new(Decimal::from(100)).expect("max"),
+        Score::try_new(Decimal::from(100)).expect("pass"),
+    );
+    assert!(exact.is_ok());
 }

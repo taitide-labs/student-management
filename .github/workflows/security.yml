@@ -35,8 +35,9 @@ jobs:
         with:
           languages: rust
           queries: security-and-quality
+          config-file: ./.github/codeql/codeql-config.yml
       - name: Build for CodeQL analysis
-        run: cargo build --all-targets --locked
+        run: cargo build --workspace --locked
       - uses: github/codeql-action/analyze@52cf1852265d99e9bea071b03366fc777a602909 # codeql-bundle-v2.27.4
 
   cargo-deny:

@@ -59,6 +59,39 @@ fn role_change_from_student_clears_student_binding_and_blocks_self_disable() {
     assert_eq!(account.status, AccountStatus::Disabled);
 }
 
+#[test]
+fn bind_person_profile_checks_student_role_and_updates_binding() {
+    let mut teacher = Account::provision(AccountProvisionInput {
+        account_id: "acc-t2".to_owned(),
+        username: Username::try_new("wang_laoshi").expect("username"),
+        display_name: NonEmptyText::try_new("姓名", "王老师", 32).expect("name"),
+        role: Role::Teacher,
+        bound_student_no: None,
+    })
+    .expect("provision teacher");
+    let sno = StudentNo::try_new("20261009").expect("student no");
+    assert_eq!(
+        teacher.bind_person_profile(v1(), Some(sno.clone())),
+        Err(IdentityDomainError::StudentBindingRequiresStudentRole)
+    );
+    teacher
+        .bind_person_profile(v1(), None)
+        .expect("teacher accepts empty binding");
+
+    let mut student = Account::provision(AccountProvisionInput {
+        account_id: "acc-s2".to_owned(),
+        username: Username::try_new("stu_02").expect("username"),
+        display_name: NonEmptyText::try_new("姓名", "陈同学", 32).expect("name"),
+        role: Role::Student,
+        bound_student_no: None,
+    })
+    .expect("provision student");
+    student
+        .bind_person_profile(v1(), Some(sno.clone()))
+        .expect("student binds student no");
+    assert_eq!(student.bound_student_no, Some(sno));
+}
+
 proptest! {
     #[test]
     fn disabled_account_never_mutates_role_or_binding(role_idx in 0u8..3u8) {

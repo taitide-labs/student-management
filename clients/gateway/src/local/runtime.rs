@@ -9,7 +9,7 @@ use student_management_contracts::{
 };
 use student_management_runtime::{
     AppState, dispatch_outbox, enrollment, ensure_bootstrap_admin, grading, identity,
-    open_app_state, resolve_session,
+    open_app_state, open_local_admin_session, resolve_session,
 };
 
 use crate::contract::{Gateway, GatewayError, GatewayFuture};
@@ -39,6 +39,12 @@ impl LocalGatewayHandle {
 
     pub async fn resolve_session(&self, token: &str) -> Result<AccountSession, GatewayError> {
         resolve_session(&self.state, token)
+            .await
+            .map_err(GatewayError::Problem)
+    }
+
+    pub async fn open_local_admin_session(&self) -> Result<AccountSession, GatewayError> {
+        open_local_admin_session(&self.state)
             .await
             .map_err(GatewayError::Problem)
     }

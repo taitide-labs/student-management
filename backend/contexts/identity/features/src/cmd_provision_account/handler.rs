@@ -2,8 +2,8 @@ use student_management_contracts::{
     AccountSummary, OperatorPrincipal, ProblemDetails, ProvisionAccountRequest, Role,
 };
 use student_management_infra::{
-    AppState, IdempotencyOutcome, InfraError, check_idempotency, ensure_role, hash_password,
-    hash_payload, infra_error_to_problem, save_idempotency,
+    AppState, IdempotencyOutcome, InfraError, check_idempotency, ensure_role,
+    generate_random_secret, hash_password, hash_payload, infra_error_to_problem, save_idempotency,
 };
 
 use super::{command::ProvisionAccountCommand, workflow};
@@ -38,7 +38,9 @@ pub async fn execute(
 
     let idempotency_key = cmd.idempotency_key.as_str().to_owned();
     let account = workflow::prepare(state.ids.next_id("acc"), cmd)?;
-    let password_hash = hash_password("changeme123").map_err(|err| infra_error_to_problem(&err))?;
+    let initial_secret = generate_random_secret();
+    let password_hash =
+        hash_password(&initial_secret).map_err(|err| infra_error_to_problem(&err))?;
     let now = state.clock.now_rfc3339();
     let role_str = role_to_db(account.role);
 
