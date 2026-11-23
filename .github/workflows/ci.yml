@@ -57,6 +57,7 @@ jobs:
               - 'Cargo.toml'
               - 'Cargo.lock'
               - 'mise.toml'
+              - 'mise.lock'
 
   docs:
     name: Docs Checks
@@ -72,6 +73,7 @@ jobs:
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
           install: true
+          install_args: --locked
       - name: Run docs checks
         run: hk check --all -q -n -p docs
 
@@ -82,8 +84,6 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-    env:
-      RUSTC_WRAPPER: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -100,6 +100,7 @@ jobs:
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
           install: true
+          install_args: --locked
       - name: Run code checks
         run: hk check --all -q -n -p code
 
@@ -110,8 +111,6 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-    env:
-      RUSTC_WRAPPER: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -132,6 +131,7 @@ jobs:
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
           install: true
+          install_args: --locked
       - name: Verify wasm32 Web compatibility
         run: cargo check --manifest-path clients/app/Cargo.toml --target wasm32-unknown-unknown --locked
       - name: Run NSH headless UI acceptance tests
@@ -152,6 +152,7 @@ jobs:
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
           install: true
+          install_args: --locked
       - name: Scan workflows with zizmor
         run: zizmor --quiet .github/workflows
       - name: Scan for leaked secrets

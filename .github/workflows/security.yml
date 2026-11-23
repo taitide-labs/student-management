@@ -17,8 +17,6 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    env:
-      RUSTC_WRAPPER: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -49,9 +47,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: taiki-e/install-action@fe3acb53a98b62c772db35de75ce0e4595e7ca8c # v2.90.8
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          tool: cargo-deny
+          install: false
+      - name: Install cargo-deny
+        run: mise install --locked cargo-deny
       - name: Run cargo-deny
         run: cargo deny check
 
@@ -73,8 +73,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-    env:
-      RUSTC_WRAPPER: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

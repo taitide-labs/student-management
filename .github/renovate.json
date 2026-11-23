@@ -28,6 +28,21 @@
   ],
   "packageRules": [
     {
+      "matchManagers": ["mise"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "mise tools"
+    },
+    {
+      "matchFileNames": [".config/hk.pkl"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "mise tools"
+    },
+    {
+      "matchPackageNames": ["hk", "jdx/hk"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "hk"
+    },
+    {
       "matchUpdateTypes": ["patch", "pin", "digest"],
       "automerge": true
     },

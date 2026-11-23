@@ -6,5 +6,4 @@
 .rumdl_cache/
 dist/
 target/
-.sccache/
 mutants.out/
