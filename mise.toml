@@ -61,7 +61,7 @@ for p in meta["packages"]:
     m = p["manifest_path"].replace("\\", "/")
     if m.endswith("/backend/primitives/Cargo.toml") or m.endswith("/domain/Cargo.toml"):
         pkgs.extend(["-p", p["name"]])
-subprocess.run(["mise", "x", "cargo:cargo-mutants@27.1.0", "--", "cargo", "mutants", *pkgs, "--", "--locked"], check=True)
+subprocess.run(["mise", "x", "cargo:cargo-mutants", "--", "cargo", "mutants", *pkgs, "--", "--locked"], check=True)
 '
 '''
 
