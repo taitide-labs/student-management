@@ -149,9 +149,9 @@ jobs:
             ext: tar.gz
           - name: android
             runner: ubuntu-latest
-            rust_target: aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+            rust_target: aarch64-linux-android
             nsh_target: android
-            nsh_args: ""
+            nsh_args: "--abi arm64-v8a"
             ext: apk
     runs-on: ${{ matrix.runner }}
     permissions:

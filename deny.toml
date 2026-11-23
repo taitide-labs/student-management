@@ -6,11 +6,9 @@ feature-depth = 1
 
 [advisories]
 ignore = [
-  # Transitive dependencies pulled in by nsh-core / wgpu / resvg with no active replacement upstream.
-  "RUSTSEC-2025-0141",
-  "RUSTSEC-2026-0543",
-  "RUSTSEC-2026-0206",
-  "RUSTSEC-2026-0192",
+  { id = "RUSTSEC-2026-0543", reason = "chrono is unmaintained; pulled in transitively by nsh-core and nsh-base with no upstream replacement yet" },
+  { id = "RUSTSEC-2026-0206", reason = "rustybuzz is unmaintained; pulled in transitively by usvg/resvg via nsh-core" },
+  { id = "RUSTSEC-2026-0192", reason = "ttf-parser is unmaintained; pulled in transitively by nsh-core, nsh-macros, and usvg" },
 ]
 
 [licenses]
