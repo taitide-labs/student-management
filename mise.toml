@@ -50,21 +50,6 @@ run = "cargo check --manifest-path clients/app/Cargo.toml --target wasm32-unknow
 description = "Run end-to-end UI to API integration tests"
 run = "cargo nextest run --manifest-path e2e/Cargo.toml --locked"
 
-[tasks.mutants]
-description = "Run mutation testing on primitives and domain crates"
-run = '''
-python3 -c '
-import json, subprocess
-meta = json.loads(subprocess.check_output(["cargo", "metadata", "--no-deps", "--format-version", "1"], text=True))
-pkgs = []
-for p in meta["packages"]:
-    m = p["manifest_path"].replace("\\", "/")
-    if m.endswith("/backend/primitives/Cargo.toml") or m.endswith("/domain/Cargo.toml"):
-        pkgs.extend(["-p", p["name"]])
-subprocess.run(["mise", "x", "cargo:cargo-mutants", "--", "cargo", "mutants", *pkgs, "--", "--locked"], check=True)
-'
-'''
-
 [tasks.check]
 description = "Run fast workspace checks (docs, fmt, ast-grep, clippy, Rust tests, and cargo-deny)"
 run = ["hk check --all -q -n", "cargo deny check"]

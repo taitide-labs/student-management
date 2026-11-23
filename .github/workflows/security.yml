@@ -87,6 +87,16 @@ jobs:
           prefix-key: mutants
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: true
+          install: false
       - name: Run mutation tests on primitives and domain crates
-        run: mise run mutants
+        run: |
+          python3 -c '
+          import json, subprocess
+          meta = json.loads(subprocess.check_output(["cargo", "metadata", "--no-deps", "--format-version", "1"], text=True))
+          pkgs = []
+          for p in meta["packages"]:
+              m = p["manifest_path"].replace("\\", "/")
+              if m.endswith("/backend/primitives/Cargo.toml") or m.endswith("/domain/Cargo.toml"):
+                  pkgs.extend(["-p", p["name"]])
+          subprocess.run(["mise", "x", "github:sourcefrog/cargo-mutants", "--", "cargo", "mutants", *pkgs, "--", "--locked"], check=True)
+          '
