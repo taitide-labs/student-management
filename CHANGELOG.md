@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/taitide-labs/student-management/compare/v0.1.4...v0.1.5) (2026-11-23)
+
+
+### Bug Fixes
+
+* **release:** 修复桌面端重复打包、E2E 弹窗竞态及 mise 任务配置 ([#19](https://github.com/taitide-labs/student-management/issues/19)) ([dfe43f3](https://github.com/taitide-labs/student-management/commit/dfe43f3f4c2b38b063ac2f9f57b265a6528cb91b))
+
 ## [0.1.4](https://github.com/taitide-labs/student-management/compare/v0.1.3...v0.1.4) (2026-11-23)
 
 

@@ -4125,7 +4125,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "student-management-api"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "axum",
  "serde",
@@ -4144,7 +4144,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-app"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "nsh-base",
  "nsh-core",
@@ -4160,7 +4160,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-cli"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "clap",
  "rust_decimal",
@@ -4172,7 +4172,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-contracts"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "rust_decimal",
  "serde",
@@ -4182,7 +4182,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-e2e"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "axum",
  "nsh-engine",
@@ -4198,7 +4198,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-enrollment-domain"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "proptest",
  "student-management-contracts",
@@ -4208,7 +4208,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-enrollment-features"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "axum",
  "inventory",
@@ -4227,7 +4227,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-gateway"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "nsh-core",
  "rust_decimal",
@@ -4242,7 +4242,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-grading-domain"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "proptest",
  "rust_decimal",
@@ -4253,7 +4253,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-grading-features"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "axum",
  "inventory",
@@ -4273,7 +4273,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-identity-domain"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "proptest",
  "student-management-contracts",
@@ -4283,7 +4283,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-identity-features"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "axum",
  "inventory",
@@ -4302,7 +4302,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-infra"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "argon2",
  "axum",
@@ -4321,7 +4321,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-primitives"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "proptest",
  "rust_decimal",
@@ -4331,7 +4331,7 @@ dependencies = [
 
 [[package]]
 name = "student-management-runtime"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "rust_decimal",
  "sqlx",
