@@ -1,21 +1,17 @@
 #:schema https://mise.jdx.dev/schema/mise.json
 
-[env]
-RUSTC_WRAPPER = "{% if get_env(name='CI', default='') == '' %}sccache{% endif %}"
-
 [tools]
-hk = "2.12"
+hk = "2.12.0"
 rumdl = "0.3.4"
 lychee = "0.24.2"
-typos = "1"
-gitleaks = "8"
-zizmor = "1"
+typos = "1.52.2"
+gitleaks = "8.30.1"
+zizmor = "1.32.0"
 "github:huacnlee/autocorrect" = "2.16.3"
 "github:1jehuang/mermaid-rs-renderer" = "0.3.1"
 "github:longbridge/nsh" = "0.6.1"
 cargo-deny = "0.20.2"
 ast-grep = "0.51.3"
-sccache = "0.19.0"
 "github:nextest-rs/nextest" = { version = "0.9.152", version_prefix = "cargo-nextest-" }
 
 [tasks.fmt]

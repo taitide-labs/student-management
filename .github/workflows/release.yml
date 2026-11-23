@@ -53,8 +53,6 @@ jobs:
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
-    env:
-      RUSTC_WRAPPER: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -77,7 +75,7 @@ jobs:
           install: false
       - name: Install cargo-nextest
         shell: bash
-        run: mise install "github:nextest-rs/nextest"
+        run: mise install --locked "github:nextest-rs/nextest"
       - name: Run cross-platform tests
         shell: bash
         env:
@@ -156,8 +154,6 @@ jobs:
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
-    env:
-      RUSTC_WRAPPER: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -180,7 +176,7 @@ jobs:
           install: false
       - name: Install nsh
         shell: bash
-        run: mise install "github:longbridge/nsh"
+        run: mise install --locked "github:longbridge/nsh"
       - name: Package client artifact
         shell: bash
         env:
