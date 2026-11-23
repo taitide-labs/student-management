@@ -76,7 +76,7 @@ jobs:
         with:
           install: true
       - name: Run docs checks
-        run: mise run docs
+        run: hk check --all -q -n --step autocorrect --step rumdl --step mmdr --step lychee --step typos
 
   checks:
     name: Checks
@@ -104,7 +104,7 @@ jobs:
         with:
           install: true
       - name: Run code checks
-        run: mise run code
+        run: hk check --all -q -n --step cargo_fmt --step ast_grep --step ast_grep_rules --step cargo_clippy --step cargo_test
 
   client:
     name: Client & Web Checks
@@ -136,7 +136,7 @@ jobs:
         with:
           install: true
       - name: Verify wasm32 Web compatibility
-        run: mise run web-check
+        run: cargo check --manifest-path clients/app/Cargo.toml --target wasm32-unknown-unknown --locked
       - name: Run NSH headless UI acceptance tests
         run: mise run client
 
@@ -160,7 +160,7 @@ jobs:
       - name: Scan for leaked secrets
         run: mise x -- gitleaks git --verbose --redact .
       - name: Audit dependencies with cargo-deny
-        run: mise run deny
+        run: cargo deny check
 
   gate:
     name: Merge Gate

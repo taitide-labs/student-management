@@ -22,61 +22,29 @@ sccache = "0.19.0"
 description = "Auto-fix documentation formatting, typography, and code formatting"
 run = "hk fix --all -q -n"
 
-[tasks.lock]
-description = "Update Cargo.lock for workspace dependency changes"
-run = "cargo generate-lockfile"
-
-[tasks.docs]
-description = "Run documentation formatting, Mermaid, link, and typo checks"
-run = "hk check --all -q -n --step autocorrect --step rumdl --step mmdr --step lychee --step typos"
-
-[tasks.code]
-description = "Run Rust formatting, ast-grep boundaries, clippy, and workspace tests"
-run = "hk check --all -q -n --step cargo_fmt --step ast_grep --step ast_grep_rules --step cargo_clippy --step cargo_test"
-
-[tasks.deny]
-description = "Audit Cargo dependencies with cargo-deny"
-run = "cargo deny check"
+[tasks.check]
+description = "Run fast workspace checks (docs, fmt, ast-grep, clippy, Rust tests, and cargo-deny)"
+run = ["hk check --all -q -n", "cargo deny check"]
 
 [tasks.client]
 description = "Run headless NSH client UI acceptance tests"
 run = "nsh test clients/app"
 
-[tasks.web-check]
-description = "Verify wasm32 Web build compatibility for the NSH app"
-run = "cargo check --manifest-path clients/app/Cargo.toml --target wasm32-unknown-unknown --locked"
-
 [tasks.e2e]
 description = "Run end-to-end UI to API integration tests"
 run = "cargo nextest run --manifest-path e2e/Cargo.toml --locked"
 
-[tasks.check]
-description = "Run fast workspace checks (docs, fmt, ast-grep, clippy, Rust tests, and cargo-deny)"
-run = ["hk check --all -q -n", "cargo deny check"]
+[tasks.api]
+description = "Run backend HTTP API server"
+run = "cargo run --quiet --manifest-path backend/api/Cargo.toml"
 
 [tasks.app]
-description = "Run desktop NSH client"
+description = "Run NSH client (default desktop; pass -- --target web|tui|catalyst|... for other targets)"
 run = "nsh run clients/app"
-
-[tasks.tui]
-description = "Run TUI client in current terminal"
-run = "nsh run clients/app --target tui"
-
-[tasks.mobile]
-description = "Run mobile shell via Mac Catalyst (requires Xcode and rustup target aarch64-apple-ios-macabi)"
-run = "nsh run clients/app --target catalyst"
-
-[tasks.web]
-description = "Run Web client in browser"
-run = "nsh run clients/app --target web"
 
 [tasks.cli]
 description = "Run workspace CLI client (pass args after --)"
 run = "cargo run --quiet --manifest-path clients/cli/Cargo.toml --"
-
-[tasks.api]
-description = "Run backend HTTP API server"
-run = "cargo run --quiet --manifest-path backend/api/Cargo.toml"
 
 [tasks.openapi]
 description = "Export OpenAPI schema to contracts/openapi.json"
