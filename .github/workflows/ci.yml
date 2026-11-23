@@ -6,9 +6,6 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
-  push:
-    branches:
-      - main
 
 permissions: {}
 
@@ -25,8 +22,8 @@ jobs:
       pull-requests: read
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
-      code: ${{ steps.filter.outputs.code }}
-      client: ${{ steps.filter.outputs.client == 'true' && steps.app.outputs.exists == 'true' }}
+      code: ${{ steps.filter.outputs.code == 'true' && !startsWith(github.head_ref, 'release-please--') }}
+      client: ${{ steps.filter.outputs.client == 'true' && steps.app.outputs.exists == 'true' && !startsWith(github.head_ref, 'release-please--') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
