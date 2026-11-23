@@ -74,11 +74,9 @@ jobs:
           persist-credentials: false
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: false
+          install: true
       - name: Run docs checks
-        run: |
-          mise install hk rumdl lychee typos "github:huacnlee/autocorrect" "github:1jehuang/mermaid-rs-renderer"
-          hk check --all -q -n --step autocorrect --step rumdl --step mmdr --step lychee --step typos
+        run: hk check --all -q -n -p docs
 
   checks:
     name: Checks
@@ -104,11 +102,9 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: false
+          install: true
       - name: Run code checks
-        run: |
-          mise install hk ast-grep "github:nextest-rs/nextest"
-          hk check --all -q -n --step cargo_fmt --step ast_grep --step ast_grep_rules --step cargo_clippy --step cargo_test
+        run: hk check --all -q -n -p code
 
   client:
     name: Client & Web Checks
@@ -138,9 +134,7 @@ jobs:
             clients/app/target
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: false
-      - name: Install nsh
-        run: mise install "github:longbridge/nsh"
+          install: true
       - name: Verify wasm32 Web compatibility
         run: cargo check --manifest-path clients/app/Cargo.toml --target wasm32-unknown-unknown --locked
       - name: Run NSH headless UI acceptance tests
@@ -160,9 +154,7 @@ jobs:
           persist-credentials: false
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          install: false
-      - name: Install security tools
-        run: mise install zizmor gitleaks cargo-deny
+          install: true
       - name: Scan workflows with zizmor
         run: zizmor --quiet .github/workflows
       - name: Scan for leaked secrets
