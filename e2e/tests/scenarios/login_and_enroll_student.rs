@@ -30,7 +30,7 @@ fn run_enroll_ui_journey(base_url: &str) -> Result<(), String> {
     app.wait_for("高一 1 班")?;
     app.press("高一 1 班")?;
     app.press("role:button[确认入学]")?;
-    app.wait_for("端到端新生")?;
+    app.wait_for("text:/^已办理入学/")?;
     Ok(())
 }
 
