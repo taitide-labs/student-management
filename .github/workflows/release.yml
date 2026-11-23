@@ -222,6 +222,7 @@ jobs:
 
   upload-assets:
     needs: [release-please, build-bins, build-app]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
