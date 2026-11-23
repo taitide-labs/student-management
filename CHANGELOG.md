@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/taitide-labs/student-management/compare/v0.1.5...v0.1.6) (2026-11-23)
+
+
+### Bug Fixes
+
+* **ci:** 固定工作流 Linux runner 为 ubuntu-24.04 ([#25](https://github.com/taitide-labs/student-management/issues/25)) ([dc322ae](https://github.com/taitide-labs/student-management/commit/dc322aeb154f40bcb24faa72c61ba0d5bda00a98))
+
 ## [0.1.5](https://github.com/taitide-labs/student-management/compare/v0.1.4...v0.1.5) (2026-11-23)
 
 
