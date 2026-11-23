@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.4](https://github.com/taitide-labs/student-management/compare/v0.1.3...v0.1.4) (2026-11-23)
+
+
+### Bug Fixes
+
+* **release:** 精简 Android APK 至 arm64-v8a 并裁剪未用 NSH 特性 ([#17](https://github.com/taitide-labs/student-management/issues/17)) ([f0e374f](https://github.com/taitide-labs/student-management/commit/f0e374f51c03051e0580bb789fc2db14c6a8d6cd))
+* **security:** resolve CodeQL credential alerts and catch all domain mutants ([#14](https://github.com/taitide-labs/student-management/issues/14)) ([69dc9bb](https://github.com/taitide-labs/student-management/commit/69dc9bbc93af90beae12d150342d7703c0af2dd9))
+
 ## [0.1.3](https://github.com/taitide-labs/student-management/compare/v0.1.2...v0.1.3) (2026-11-22)
 
 
