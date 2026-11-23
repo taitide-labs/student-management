@@ -26,7 +26,7 @@ jobs:
       - name: Install Linux UI system libraries
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
@@ -49,11 +49,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+      - uses: taiki-e/install-action@fe3acb53a98b62c772db35de75ce0e4595e7ca8c # v2.90.8
         with:
-          install: true
+          tool: cargo-deny
       - name: Run cargo-deny
-        run: mise run deny
+        run: cargo deny check
 
   zizmor:
     name: Workflow Security Audit
@@ -85,8 +85,11 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           prefix-key: mutants
-      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+      - uses: taiki-e/install-action@fe3acb53a98b62c772db35de75ce0e4595e7ca8c # v2.90.8
         with:
-          install: true
+          tool: cargo-mutants,cargo-nextest
       - name: Run mutation tests on primitives and domain crates
-        run: mise run mutants
+        run: |
+          mapfile -t pkgs < <(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[] | select(.manifest_path | endswith("/backend/primitives/Cargo.toml") or endswith("/domain/Cargo.toml")) | ("-p", .name)')
+          cargo mutants --in-place "${pkgs[@]}" -- --locked

@@ -76,7 +76,7 @@ jobs:
         with:
           install: true
       - name: Run docs checks
-        run: mise run docs
+        run: hk check --all -q -n -p docs
 
   checks:
     name: Checks
@@ -94,7 +94,7 @@ jobs:
       - name: Install Linux UI system libraries
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
@@ -104,7 +104,7 @@ jobs:
         with:
           install: true
       - name: Run code checks
-        run: mise run code
+        run: hk check --all -q -n -p code
 
   client:
     name: Client & Web Checks
@@ -122,7 +122,7 @@ jobs:
       - name: Install Linux UI system libraries
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
@@ -136,7 +136,7 @@ jobs:
         with:
           install: true
       - name: Verify wasm32 Web compatibility
-        run: mise run web-check
+        run: cargo check --manifest-path clients/app/Cargo.toml --target wasm32-unknown-unknown --locked
       - name: Run NSH headless UI acceptance tests
         run: mise run client
 
@@ -156,11 +156,11 @@ jobs:
         with:
           install: true
       - name: Scan workflows with zizmor
-        run: mise x -- zizmor --quiet .github/workflows
+        run: zizmor --quiet .github/workflows
       - name: Scan for leaked secrets
-        run: mise x -- gitleaks git --verbose --redact .
+        run: gitleaks git --verbose --redact .
       - name: Audit dependencies with cargo-deny
-        run: mise run deny
+        run: cargo deny check
 
   gate:
     name: Merge Gate

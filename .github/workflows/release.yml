@@ -63,7 +63,7 @@ jobs:
         if: ${{ startsWith(matrix.runner, 'ubuntu-') }}
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libgtk-4-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          sudo apt-get install --no-install-recommends -y libgtk-4-dev
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
