@@ -14,6 +14,7 @@ test("teacher saves draft and publishes grades while admin can amend published g
   await teacher.type("text:请输入学生学号", "20261001");
   await teacher.type("text:请输入分值", "91.5");
   await teacher.press("role:button[保存草稿]");
+  await teacher.waitFor("已保存成绩草稿");
   await teacher.waitFor("91.5");
 
   await teacher.press("role:button[锁分发布]");
@@ -32,5 +33,6 @@ test("teacher saves draft and publishes grades while admin can amend published g
   await admin.type("text:请输入修订后分值", "95");
   await admin.type("text:请输入修订原因", "试卷复核加分");
   await admin.press("role:button[确认修订]");
+  await admin.waitFor("已完成成绩合规修订");
   await admin.waitFor("95");
 });

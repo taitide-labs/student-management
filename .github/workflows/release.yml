@@ -196,11 +196,22 @@ jobs:
           mise x -- nsh package clients/app --target "$NSH_TARGET" --app-version "${TAG#v}" $NSH_ARGS -o out_tmp
           if [ "$EXT" = "apk" ]; then
             apk_file=$(find out_tmp -maxdepth 2 -type f -name '*.apk' | head -n 1)
+            test -n "$apk_file"
             cp "$apk_file" "dist/${app_pkg}-${PKG_LABEL}.apk"
           elif [ "$EXT" = "zip" ]; then
-            7z a "dist/${app_pkg}-${PKG_LABEL}.zip" ./out_tmp/*
+            zip_file=$(find out_tmp -maxdepth 1 -type f -name '*.zip' | head -n 1)
+            if [ -n "$zip_file" ]; then
+              cp "$zip_file" "dist/${app_pkg}-${PKG_LABEL}.zip"
+            else
+              7z a "dist/${app_pkg}-${PKG_LABEL}.zip" ./out_tmp/*
+            fi
           else
-            tar -C out_tmp -czf "dist/${app_pkg}-${PKG_LABEL}.tar.gz" .
+            tar_file=$(find out_tmp -maxdepth 1 -type f -name '*.tar.gz' | head -n 1)
+            if [ -n "$tar_file" ]; then
+              cp "$tar_file" "dist/${app_pkg}-${PKG_LABEL}.tar.gz"
+            else
+              tar -C out_tmp -czf "dist/${app_pkg}-${PKG_LABEL}.tar.gz" .
+            fi
           fi
           test -n "$(find dist -maxdepth 1 -type f)"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

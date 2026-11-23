@@ -53,18 +53,16 @@ run = "cargo nextest run --manifest-path e2e/Cargo.toml --locked"
 [tasks.mutants]
 description = "Run mutation testing on primitives and domain crates"
 run = '''
-pkgs=$(cargo metadata --no-deps --format-version 1 | python3 -c "
-import sys, json
-for p in json.load(sys.stdin)['packages']:
-    m = p['manifest_path'].replace('\\\\', '/')
-    if m.endswith('/backend/primitives/Cargo.toml') or m.endswith('/domain/Cargo.toml'):
-        print('-p', p['name'])
-")
-if [ "$(uname -s)-$(uname -m)" = "Darwin-arm64" ]; then
-  exec mise x "cargo:cargo-mutants@27.1.0" -- cargo mutants $pkgs -- --locked
-else
-  exec mise x "github:sourcefrog/cargo-mutants@27.1.0" -- cargo mutants $pkgs -- --locked
-fi
+python3 -c '
+import json, subprocess
+meta = json.loads(subprocess.check_output(["cargo", "metadata", "--no-deps", "--format-version", "1"], text=True))
+pkgs = []
+for p in meta["packages"]:
+    m = p["manifest_path"].replace("\\", "/")
+    if m.endswith("/backend/primitives/Cargo.toml") or m.endswith("/domain/Cargo.toml"):
+        pkgs.extend(["-p", p["name"]])
+subprocess.run(["mise", "x", "cargo:cargo-mutants@27.1.0", "--", "cargo", "mutants", *pkgs, "--", "--locked"], check=True)
+'
 '''
 
 [tasks.check]
@@ -85,7 +83,7 @@ run = "nsh run clients/app --target catalyst"
 
 [tasks.web]
 description = "Run Web client in browser"
-run = 'PATH="/opt/homebrew/opt/llvm/bin:/usr/local/opt/llvm/bin:$PATH" nsh run clients/app --target web'
+run = "nsh run clients/app --target web"
 
 [tasks.cli]
 description = "Run workspace CLI client (pass args after --)"

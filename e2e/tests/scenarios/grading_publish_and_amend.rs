@@ -102,7 +102,7 @@ fn run_grading_ui_journey(base_url: &str, student_no: &str) -> Result<(), String
     app.type_text("text:请输入学生学号", student_no)?;
     app.type_text("text:请输入分值", "91.5")?;
     app.press("role:button[保存草稿]")?;
-    app.wait_for("91.5")?;
+    app.wait_for("已保存成绩草稿")?;
 
     app.press("role:button[锁分发布]")?;
     app.wait_for("已锁定")?;
@@ -111,7 +111,7 @@ fn run_grading_ui_journey(base_url: &str, student_no: &str) -> Result<(), String
     app.type_text("text:请输入修订后分值", "95")?;
     app.type_text("text:请输入修订原因", "试卷复核加分")?;
     app.press("role:button[确认修订]")?;
-    app.wait_for("95")?;
+    app.wait_for("已完成成绩合规修订")?;
     Ok(())
 }
 

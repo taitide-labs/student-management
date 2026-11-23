@@ -15,6 +15,7 @@ test("admin creates homeroom and updates capacity with active count guard", asyn
   await app.type("text:请输入入学年份", "2026");
   await app.type("text:可选额定人数", "40");
   await app.press("role:button[确认创建]");
+  await app.waitFor("text:/^已创建行政班/");
   await app.waitFor("高一 3 班");
 
   await app.press("role:button[调整高一 1 班容量…]");
