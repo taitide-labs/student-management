@@ -2,7 +2,7 @@ use std::io::{Write, stderr};
 
 use clap::ArgMatches;
 use student_management_gateway::{
-    contract::{AccountSession, Gateway, GatewayError, Role, SignInRequest},
+    contract::{AccountSession, Gateway, GatewayError, Role},
     local::LocalGatewayHandle,
     remote::{RemoteGateway, RemoteGatewayConfig},
 };
@@ -47,37 +47,20 @@ async fn run_local(matches: &ArgMatches, json: bool, yes: bool) -> u8 {
         Ok(handle) => handle,
         Err(err) => return emit_error(&err),
     };
-    if let Err(err) = gw
-        .ensure_bootstrap_admin("admin", "系统管理员", "admin")
-        .await
-    {
-        return emit_error(&err);
-    }
 
     let token = matches.get_one::<String>("token").map(String::as_str);
     if let Some(("auth", sub)) = matches.subcommand() {
         let active = match token {
             Some(tok) => gw.resolve_session(tok).await.ok(),
-            None => gw
-                .sign_in(&SignInRequest {
-                    username: "admin".to_owned(),
-                    password: "admin".to_owned(),
-                })
-                .await
-                .ok(),
+            None if sub.subcommand_name() == Some("login") => None,
+            None => gw.open_local_admin_session().await.ok(),
         };
         return commands::auth::execute(&gw, active.as_ref(), sub, json).await;
     }
 
     let session = match token {
         Some(tok) => gw.resolve_session(tok).await,
-        None => {
-            gw.sign_in(&SignInRequest {
-                username: "admin".to_owned(),
-                password: "admin".to_owned(),
-            })
-            .await
-        }
+        None => gw.open_local_admin_session().await,
     };
     let session = match session {
         Ok(s) => s,

@@ -27,4 +27,6 @@ fn homeroom_capacity_guards_enroll_and_capacity_shrink() {
             active_count: 2,
         })
     );
+    hr.update_capacity(hr.version, Some(NonZeroU32::new(2).expect("exact cap")), 2)
+        .expect("capacity matching active count is allowed");
 }

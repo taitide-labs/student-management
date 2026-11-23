@@ -1,8 +1,8 @@
 pub mod bootstrap;
 
 pub use bootstrap::{
-    build_app_state, dispatch_outbox, ensure_bootstrap_admin, link_all_contexts, open_app_state,
-    resolve_session,
+    bootstrap_admin_if_empty, build_app_state, dispatch_outbox, ensure_bootstrap_admin,
+    link_all_contexts, open_app_state, open_local_admin_session, resolve_session,
 };
 pub use student_management_enrollment_features as enrollment;
 pub use student_management_grading_features as grading;

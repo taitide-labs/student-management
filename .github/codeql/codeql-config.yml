@@ -1,0 +1,6 @@
+name: "Student Management CodeQL Config"
+
+paths-ignore:
+  - "**/tests/**"
+  - "**/src/tests/**"
+  - "e2e/**"

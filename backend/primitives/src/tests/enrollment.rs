@@ -19,7 +19,12 @@ proptest! {
 fn enrollment_primitives_reject_invalid_values() {
     assert!(GradeYear::try_new(1899).is_err());
     assert!(GradeYear::try_new(3000).is_err());
+    assert_eq!(GradeYear::try_new(2026).expect("2026").get(), 2026);
+    let homeroom = HomeroomName::try_new("高一 (1) 班").expect("homeroom");
+    assert_eq!(homeroom.as_str(), "高一 (1) 班");
     assert!(HomeroomName::try_new("   ").is_err());
     assert!(StudentNo::try_new("123").is_err());
     assert!(StudentNo::try_new("2026abcd").is_err());
+    let sno = StudentNo::try_new("20260001").expect("student no");
+    assert_eq!(format!("{sno}"), "20260001");
 }

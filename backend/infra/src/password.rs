@@ -2,6 +2,11 @@ use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 
 use crate::error::InfraError;
 
+#[must_use]
+pub fn generate_random_secret() -> String {
+    uuid::Uuid::new_v4().simple().to_string()
+}
+
 pub fn hash_password(password: &str) -> Result<String, InfraError> {
     let hash = Argon2::default()
         .hash_password(password.as_bytes())

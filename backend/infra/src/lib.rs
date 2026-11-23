@@ -17,7 +17,7 @@ pub use error::InfraError;
 pub use idempotency::{IdempotencyOutcome, check_idempotency, hash_payload, save_idempotency};
 pub use ids::{SequentialIdGenerator, UuidGenerator};
 pub use outbox::{OutboxSubscriber, OutboxSubscription, dispatch_pending, enqueue_event};
-pub use password::{hash_password, verify_password};
+pub use password::{generate_random_secret, hash_password, verify_password};
 #[cfg(feature = "http")]
 pub use registry::{
     HttpMethod, SliceDescriptor, SliceStatus, build_context_router, registered_slices,

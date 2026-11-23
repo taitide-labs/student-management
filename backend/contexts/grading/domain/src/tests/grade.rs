@@ -45,6 +45,27 @@ fn published_grade_locks_draft_edits_and_allows_admin_amendment() {
     assert_eq!(amendment.previous_score, Decimal::from(88));
     assert_eq!(amendment.new_score, Decimal::from(92));
     assert_eq!(entry.score.get(), Decimal::from(92));
+
+    let exact_max = GradeEntry::new_draft(
+        "g-max".to_owned(),
+        "t-1".to_owned(),
+        StudentNo::try_new("20261001").expect("no"),
+        Score::try_new(Decimal::from(100)).expect("score"),
+        max,
+    );
+    assert!(exact_max.is_ok());
+
+    let over_max = GradeEntry::new_draft(
+        "g-over".to_owned(),
+        "t-1".to_owned(),
+        StudentNo::try_new("20261001").expect("no"),
+        Score::try_new(Decimal::from(101)).expect("score"),
+        max,
+    );
+    assert!(matches!(
+        over_max,
+        Err(GradingDomainError::ScoreExceedsMax { .. })
+    ));
 }
 
 proptest! {
